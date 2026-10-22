@@ -35,6 +35,9 @@ VALID_TYPES = frozenset({
     # Desk de volatilité (2026-10-22) : une ligne par action d'un membre de
     # l'équipe — meta["role"] = Volatility Trader, Execution Trader, Middle Office…
     "desk",
+    # Équipe Claude (2026-10-22) : une tâche terminée par un membre — récap
+    # court (notification), récap détaillé, coût (meta).
+    "equipe",
 })
 VALID_SEVERITIES = frozenset({"info", "warning", "critical"})
 

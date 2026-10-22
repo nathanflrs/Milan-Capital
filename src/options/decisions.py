@@ -37,7 +37,7 @@ LOTS_PAR_BARREAU = 1
 BARREAUX_MAX_EN_REDUCTION = 2      # amendement 1 : « réduire » → pas de nouveau barreau au-delà
 CONTROLE_OUVERTURE = "10:30"
 
-VT, ET, MO = "Volatility Trader", "Execution Trader", "Middle Office"
+VT, ET, MO, RM = "Volatility Trader", "Execution Trader", "Middle Office", "Risk Manager"
 
 
 @dataclass(frozen=True)
@@ -51,6 +51,10 @@ class Fermer:
 class Ouvrir:
     butterfly: st.Butterfly
     lots: int
+    # Le livre tel qu'il serait après l'ouverture : ce que le Risk Manager
+    # relit et sur quoi il rejoue ses propres scénarios de stress.
+    livre_apres: Optional[rq.Livre] = None
+    vega_total_apres: float = 0.0
 
 
 @dataclass
@@ -188,7 +192,7 @@ def planifier(livre: Livre, chaine: pd.DataFrame, spot: float, vl: float,
         plan.dire(VT, "Barreau refusé par la charte : " + " ; ".join(raisons) + ".")
         return plan
 
-    plan.actions.append(Ouvrir(b, LOTS_PAR_BARREAU))
+    plan.actions.append(Ouvrir(b, LOTS_PAR_BARREAU, risque, vega_total))
     plan.dire(VT, f"Ouverture du barreau {b.echeance} ({b.dte} j) : "
                   f"{b.aile_put:g}/{b.centre:g}/{b.aile_call:g}, crédit {b.credit_milieu:.2f} "
                   f"au milieu, perte max {b.perte_max_lot:,.0f} $, stress livre "

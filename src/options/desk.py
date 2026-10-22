@@ -58,6 +58,31 @@ def _valeur_liquidative(ib) -> float:
     raise RuntimeError("valeur liquidative introuvable")
 
 
+def _clotures_xsp(ib) -> list:
+    """Clôtures quotidiennes de l'indice XSP sur ~4 mois, pour la volatilité réalisée."""
+    try:
+        from ib_insync import Index
+        barres = ib.reqHistoricalData(Index("XSP", "CBOE", "USD"), endDateTime="",
+                                      durationStr="4 M", barSizeSetting="1 day",
+                                      whatToShow="TRADES", useRTH=True)
+        return [b.close for b in barres]
+    except Exception as e:
+        print(f"(volatilité réalisée indisponible : {e})", file=sys.stderr)
+        return []
+
+
+def _relecture(ib, ouvrir, livre, chaine, spot: float, vl: float, aujourd_hui: date):
+    """(autorisé ?, motif) — l'avis du Risk Manager, toute défaillance valant frein."""
+    try:
+        from src.equipe import contexte, risk_manager
+        ctx = contexte.construire(ouvrir, livre, chaine, spot, vl, aujourd_hui, _clotures_xsp(ib))
+        ok, motif, _ = risk_manager.relire(ctx, contexte.fonction_de_stress(ouvrir, spot, aujourd_hui),
+                                           aujourd_hui)
+        return ok, motif
+    except Exception as e:
+        return False, f"Relecture impossible ({type(e).__name__} : {e}) : pas d'ouverture."
+
+
 def seance(moment: str, aujourd_hui: Optional[date] = None,
            livre_chemin: Path = rg.LIVRE) -> int:
     from ib_insync import IB
@@ -124,6 +149,12 @@ def seance(moment: str, aujourd_hui: Optional[date] = None,
 
             elif isinstance(a, dc.Ouvrir):
                 b = a.butterfly
+                # Le Risk Manager relit toute ouverture. Pas d'avis valide = pas
+                # d'ouverture (docs/desk/equipe.md, règle 3).
+                autorise, motif = _relecture(ib, a, livre, chaine, spot, vl, aujourd_hui)
+                dire(dc.RM, motif, "info" if autorise else "warning")
+                if not autorise:
+                    continue
                 r = ex.executer_combo(ib, ex.contrat_butterfly(ib, b.echeance, ex.jambes_ouverture(b)),
                                       a.lots, ex.paliers(-b.credit_milieu, -b.credit_naturel), mode,
                                       instrument=f"ouverture {b.echeance}")
