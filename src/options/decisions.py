@@ -115,10 +115,28 @@ def delta_livre(livre: Livre, chaine: pd.DataFrame, spot: float, aujourd_hui: da
     return total
 
 
-def _livre_risque(livre: Livre, extra: Optional[Barreau] = None) -> rq.Livre:
+def _iv_jambe(chaine: Optional[pd.DataFrame], b: Barreau, t: str, k: float) -> float:
+    """Volatilité implicite de la jambe elle-même, lue dans la photo.
+
+    Les ailes n'ont pas la volatilité du centre (le « smile ») : réévaluer tout
+    le barreau à la volatilité à la monnaie surestimait le vega et le stress du
+    livre — écart repéré par le Risk Manager lors de sa première relecture
+    réelle, le 2026-10-22 (164 $ par point au lieu de 139). À défaut de prix,
+    la volatilité d'entrée du barreau.
+    """
+    if chaine is not None:
+        l = _cotation(chaine, b.echeance, t, k)
+        if l is not None and not pd.isna(l.get("vol_implicite")) and l["vol_implicite"] > 0:
+            return float(l["vol_implicite"])
+    return b.iv_atm
+
+
+def _livre_risque(livre: Livre, extra: Optional[Barreau] = None,
+                  chaine: Optional[pd.DataFrame] = None) -> rq.Livre:
     pos = [rq.Position("MES", q) for q in livre.mes.values()]
     for b in livre.barreaux + ([extra] if extra else []):
-        pos += [rq.Position(t, s * b.lots, k, b.echeance, b.iv_atm) for t, k, s in b.jambes]
+        pos += [rq.Position(t, s * b.lots, k, b.echeance, _iv_jambe(chaine, b, t, k))
+                for t, k, s in b.jambes]
     return rq.Livre(pos)
 
 
@@ -180,7 +198,7 @@ def planifier(livre: Livre, chaine: pd.DataFrame, spot: float, vl: float,
                       aujourd_hui.isoformat(), b.credit_milieu, b.vega_lot,
                       b.perte_max_lot, b.iv_atm)
     apres = Livre(barreaux=restants, mes=dict(livre.mes))
-    risque = _livre_risque(apres, nouveau)
+    risque = _livre_risque(apres, nouveau, chaine)
     ctrl = rq.controler_ouverture(risque, b.perte_max_lot * LOTS_PAR_BARREAU, spot,
                                   aujourd_hui, vl, plus_haut)
     raisons = list(ctrl.raisons)

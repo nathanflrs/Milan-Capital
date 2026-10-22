@@ -115,3 +115,21 @@ def test_delta_recalcule_si_la_photo_n_a_pas_la_jambe():
     b = barreau("20261218")                          # échéance absente de la photo
     d = dc.delta_livre(Livre([b]), CH, SPOT, LUNDI)
     assert abs(d) < 20                               # butterfly centré : presque neutre
+
+
+def test_chaque_jambe_reevaluee_a_sa_propre_volatilite():
+    # Le Risk Manager l'a repéré le 2026-10-22 : avec le smile, les ailes ont
+    # une volatilité plus haute que le centre. Le vega du livre doit être celui
+    # de la proposition (grecques de la photo), pas celui d'une volatilité plate.
+    from src.options import structure as st
+    ch = chaine(echeances=("20261127",))
+    smile = ch.copy()
+    loin = (smile["strike"] - SPOT).abs() > 40
+    smile.loc[loin, "vol_implicite"] = 0.22                     # ailes plus chères
+    from src.options.greeks import grecques
+    for i, l in smile[loin].iterrows():
+        g = grecques(SPOT, l["strike"], l["dte"] / 365, 0.22, l["type"])
+        smile.loc[i, ["bid", "ask", "delta", "vega"]] = [g.prix - 0.05, g.prix + 0.05, g.delta, g.vega]
+    p = dc.planifier(Livre(plus_haut=VL), smile, SPOT, VL, LUNDI, "10:30", True)
+    (o,) = actions(p, dc.Ouvrir)
+    assert abs(o.vega_total_apres) == pytest.approx(o.butterfly.vega_lot, rel=0.02)
