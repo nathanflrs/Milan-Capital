@@ -186,3 +186,23 @@ def test_revue_du_vendredi(tmp_path):
     r = au.revue(date(2026, 10, 23), client=c, dossier=tmp_path, db=tmp_path / "e.db", publier=False)
     assert r.ok and "2026-10-19" in c.requetes[0]["messages"][0]["content"]   # lundi de la semaine
     assert c.requetes[0]["output_config"]["effort"] == "high"
+
+
+def test_briefing_tardif_exclu_de_la_calibration(tmp_path):
+    # Leçon 20261022-pos-3, validée par le CIO : un briefing écrit après
+    # l'ouverture connaît déjà la séance.
+    memo(tmp_path, "Research Analyst", "briefing", {"gravite": 4, "alerte": True}, heure=21)  # 17 h NY
+    fichiers = {"SPX": "DATE,SPX\n10/22/2026,7757.17\n10/23/2026,7660.20\n",
+                "VIX": "DATE,OPEN,HIGH,LOW,CLOSE\n10/22/2026,1,1,1,16.68\n10/23/2026,1,1,1,21.40\n"}
+    lire = lambda url: fichiers["SPX" if "SPX" in url else "VIX"]
+    assert jx.mettre_a_jour_calibration(tmp_path / "memos", tmp_path / "calib.csv", lire) == []
+    # Le même jour, un briefing à l'heure (8 h NY) compte, lui.
+    memo(tmp_path, "Research Analyst", "briefing", {"gravite": 3, "alerte": False}, heure=12)
+    (l,) = jx.mettre_a_jour_calibration(tmp_path / "memos", tmp_path / "calib.csv", lire)
+    assert l["gravite"] == "3"
+
+
+def test_heure_limite_du_briefing():
+    a_l_heure = {"horodatage": "2026-10-23T13:29:00+00:00"}   # 9 h 29 NY (EDT)
+    tardif = {"horodatage": "2026-10-23T13:30:00+00:00"}      # 9 h 30 NY
+    assert not jx.est_tardif(a_l_heure) and jx.est_tardif(tardif)

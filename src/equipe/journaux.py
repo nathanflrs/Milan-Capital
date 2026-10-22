@@ -119,6 +119,15 @@ def clotures_cboe(indice: str, lire=None) -> Dict[str, float]:
     return sortie
 
 
+HEURE_LIMITE_BRIEFING = time(9, 30)       # ouverture de New York
+
+
+def est_tardif(memo: dict) -> bool:
+    """Un briefing écrit à ou après l'ouverture de New York."""
+    h = datetime.fromisoformat(memo["horodatage"]).astimezone(NEW_YORK).time()
+    return h >= HEURE_LIMITE_BRIEFING
+
+
 def mettre_a_jour_calibration(memos_dossier: Path = DOSSIER / "memos",
                               chemin: Path = CALIBRATION, lire=None) -> List[dict]:
     """Ajoute chaque journée dont on connaît à la fois la météo et la clôture.
@@ -138,8 +147,11 @@ def mettre_a_jour_calibration(memos_dossier: Path = DOSSIER / "memos",
         for d in sorted(p.name for p in memos_dossier.iterdir() if p.is_dir()):
             if d in deja or d not in spx:
                 continue
+            # Seuls les briefings écrits avant l'ouverture comptent : un briefing
+            # tardif connaît déjà la séance et fausserait sa propre note (leçon
+            # 20261022-pos-3, validée par le CIO le 2026-10-22).
             briefings = [m for m in lire_memos(d, "Research Analyst", memos_dossier)
-                         if m["tache"] == "briefing" and m.get("ok")]
+                         if m["tache"] == "briefing" and m.get("ok") and not est_tardif(m)]
             i = jours.index(d)
             if not briefings or i == 0:
                 continue

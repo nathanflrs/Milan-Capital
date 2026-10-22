@@ -38,11 +38,21 @@ fort. Revu après la première semaine, sur les coûts mesurés.*
 | Heure | Membre | Tâche |
 |---|---|---|
 | 8 h 30 | Research Analyst | **Briefing** : agenda du jour, nouvelles de la nuit, courbe du VIX → *météo du jour*, gravité 1 à 5, heures à risque. |
-| 9 h 30 → 16 h, toutes les 30 min | Research Analyst (veille, Haiku) | Trie les nouveaux titres des sources fixées. Rien d'important → silence. Important → analyse par Sonnet → mémo, et **alerte** si gravité ≥ 4. |
+| 9 h 30 → 16 h, toutes les 30 min | Research Analyst (veille, Haiku) | Trie les nouveaux titres des sources fixées. Rien d'important → silence. Gravité 3 ou plus → analyse par Sonnet → mémo, et **alerte** selon la règle ci-dessous. |
 | 10 h 30 et 15 h 30 | Volatility Trader → **Risk Manager** → Execution Trader | Séance du desk. Le Risk Manager relit chaque ouverture proposée. |
 | 16 h 30 | Middle Office | **Rapport du soir.** |
 | 16 h 50 | Audit | **Post-mortem**, seulement s'il s'est passé quelque chose : frein, alerte, membre en échec, incident du desk. Journée calme → aucun appel. |
 | vendredi 17 h 15 | Audit | **Revue de la semaine** + mémo commun de l'équipe au CIO. |
+
+**La règle d'alerte** (tranchée par le CIO le 2026-10-22, après que l'Audit
+a relevé une contradiction entre ce document et le mandat du Research
+Analyst). L'alerte freine toute ouverture du jour : elle est **réservée à un
+choc en cours ou imminent** qui rend une vente de volatilité aujourd'hui
+manifestement imprudente — en pratique une gravité 5, ou une gravité 4 avec un
+mouvement de marché déjà en cours. Un événement simplement prévu au
+calendrier, même majeur, ne déclenche pas d'alerte : c'est le Risk Manager qui
+en juge, ouverture par ouverture. L'échelle complète est dans le mandat du
+Research Analyst (`src/equipe/research.py`, `ECHELLE`).
 
 ## 4. Les règles de l'équipe
 

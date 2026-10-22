@@ -16,7 +16,7 @@ mouvement réel du S&P 500 et du VIX.
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -151,10 +151,19 @@ def _outils(jour: date, dossier: Path, titres_fn=None, vol_fn=None, desk_fn=None
 
 
 def briefing(jour: Optional[date] = None, *, client=None, dossier: Path = sc.DOSSIER,
-             publier: bool = True, **sources) -> sc.Resultat:
-    jour = jour or datetime.now(sc.NEW_YORK).date()
+             publier: bool = True, maintenant: Optional[datetime] = None,
+             **sources) -> sc.Resultat:
+    maintenant = (maintenant or datetime.now(timezone.utc)).astimezone(sc.NEW_YORK)
+    jour = jour or maintenant.date()
     consigne = (f"Rédige la météo du {jour.isoformat()} ({jour.strftime('%A')}). "
                 f"Commence par tes outils, puis vérifie l'agenda par la recherche web.")
+    if maintenant.time() >= time(9, 30):
+        # Leçon 20261022-pos-3 (validée par le CIO) : un briefing tardif le dit,
+        # et le code l'exclut de la calibration.
+        consigne += (f"\n\nATTENTION : ce briefing est TARDIF (écrit à "
+                     f"{maintenant.strftime('%H:%M')} à New York, après l'ouverture). "
+                     f"Commence ton recap_court par « Tardif — ». Ta gravité ne sera pas "
+                     f"comptée dans ta calibration.")
     r = sc.consulter(MEMBRE, MODELE, MANDAT_BRIEFING, "briefing", consigne, Meteo,
                      outils=_outils(jour, dossier, **sources),
                      outils_serveur=[sc.recherche_web(so.DOMAINES, max_uses=6)],

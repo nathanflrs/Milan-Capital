@@ -165,3 +165,14 @@ def test_aucun_domaine_refuse_par_la_recherche_web():
     # 400 au premier briefing réel : la liste entière est refusée si un seul
     # domaine bloque le robot d'Anthropic.
     assert not set(so.DOMAINES) & set(so.DOMAINES_REFUSES)
+
+
+def test_briefing_tardif_le_dit(tmp_path):
+    tard = datetime(2026, 10, 22, 21, 54, tzinfo=timezone.utc)      # 17 h 54 à New York
+    c = FauxClient([reponse([bloc_texte(meteo())])])
+    research.briefing(client=c, dossier=tmp_path, publier=False, maintenant=tard, **SOURCES)
+    assert "TARDIF" in c.requetes[0]["messages"][0]["content"]
+    tot = datetime(2026, 10, 23, 12, 30, tzinfo=timezone.utc)       # 8 h 30 à New York
+    c = FauxClient([reponse([bloc_texte(meteo())])])
+    research.briefing(client=c, dossier=tmp_path, publier=False, maintenant=tot, **SOURCES)
+    assert "TARDIF" not in c.requetes[0]["messages"][0]["content"]
