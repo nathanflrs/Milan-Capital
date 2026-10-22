@@ -1,0 +1,10 @@
+[Unit]
+Description=Milan Capital — rapport du Middle Office (16 h 30, New York)
+
+[Timer]
+OnCalendar=Mon-Fri 16:30 America/New_York
+Unit=milan-equipe@rapport.service
+RandomizedDelaySec=30
+
+[Install]
+WantedBy=timers.target

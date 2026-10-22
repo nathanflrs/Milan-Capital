@@ -41,8 +41,8 @@ fort. Revu après la première semaine, sur les coûts mesurés.*
 | 9 h 30 → 16 h, toutes les 30 min | Research Analyst (veille, Haiku) | Trie les nouveaux titres des sources fixées. Rien d'important → silence. Important → analyse par Sonnet → mémo, et **alerte** si gravité ≥ 4. |
 | 10 h 30 et 15 h 30 | Volatility Trader → **Risk Manager** → Execution Trader | Séance du desk. Le Risk Manager relit chaque ouverture proposée. |
 | 16 h 30 | Middle Office | **Rapport du soir.** |
-| vendredi 17 h | Audit | **Revue de la semaine** + mémo commun de l'équipe au CIO. |
-| à chaud | Audit | **Post-mortem** après toute perte hors norme, tout frein, tout incident. |
+| 16 h 50 | Audit | **Post-mortem**, seulement s'il s'est passé quelque chose : frein, alerte, membre en échec, incident du desk. Journée calme → aucun appel. |
+| vendredi 17 h 15 | Audit | **Revue de la semaine** + mémo commun de l'équipe au CIO. |
 
 ## 4. Les règles de l'équipe
 
@@ -71,7 +71,25 @@ fort. Revu après la première semaine, sur les coûts mesurés.*
    marchés), avec son coût. La veille ne notifie que si elle trouve quelque
    chose (choix de Nathan).
 
-## 5. Comment chaque membre sera jugé
+## 5. Le circuit des leçons
+
+L'Audit **propose** ; le CIO **décide**. Les membres ne lisent dans leur
+carnet que des leçons validées par le CIO : l'équipe ne peut pas modifier son
+propre comportement sans lui.
+
+```
+python -m src.equipe propositions             # leçons en attente
+python -m src.equipe valider <id>             # → carnet du membre
+python -m src.equipe rejeter <id> "raison"
+```
+
+Chaque post-mortem classe chaque problème : **perte normale** (le prix de la
+stratégie, aucune leçon — changer les règles après elle, c'est se
+suradapter), **vraie erreur** (une leçon, et si possible un test
+automatique), **à juger plus tard** (un frein se juge à l'échéance du barreau
+freiné).
+
+## 6. Comment chaque membre sera jugé
 
 | Membre | Mesure | Quand |
 |---|---|---|
@@ -86,12 +104,15 @@ leur date de coupure. Leur jugement ne se teste donc honnêtement **qu'en
 direct**, jamais sur le passé — d'où ces mesures quotidiennes plutôt qu'un
 backtest.
 
-## 6. Où vivent les choses
+## 7. Où vivent les choses
 
 | Quoi | Où |
 |---|---|
 | Code de l'équipe | `src/equipe/` |
 | Mémos | `logs/equipe/memos/<date>/<membre>-<heure>.json` |
-| Carnets de leçons | `logs/equipe/carnets/<membre>.md` (écrits par l'Audit) |
+| Carnets de leçons | `logs/equipe/carnets/<membre>.md` (leçons validées par le CIO) |
+| Leçons proposées | `logs/equipe/propositions.jsonl` |
+| Calibration du Research Analyst | `logs/equipe/calibration.csv` (calculée par le code) |
+| Relevé de chaque séance | `logs/desk/seances.csv` |
 | Coût de chaque appel | `logs/equipe/couts.csv` |
 | Événements (salle des marchés, notifications) | bus `logs/events.db`, type `equipe` |

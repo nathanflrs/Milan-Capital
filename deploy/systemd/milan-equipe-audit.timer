@@ -1,0 +1,10 @@
+[Unit]
+Description=Milan Capital — post-mortem de l'Audit, s'il y a lieu (16 h 50, New York)
+
+[Timer]
+OnCalendar=Mon-Fri 16:50 America/New_York
+Unit=milan-equipe@audit.service
+RandomizedDelaySec=30
+
+[Install]
+WantedBy=timers.target

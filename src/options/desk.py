@@ -58,6 +58,21 @@ def _valeur_liquidative(ib) -> float:
     raise RuntimeError("valeur liquidative introuvable")
 
 
+def _noter_seance(jour: date, moment: str, mode: str, vl: float, livre, delta: float,
+                  mes_trades: int, chemin: Path = DOSSIER / "seances.csv") -> None:
+    """Relevé chiffré de la séance, écrit par le code : la base du rapport du soir."""
+    import csv
+    chemin.parent.mkdir(parents=True, exist_ok=True)
+    nouveau = not chemin.exists()
+    with chemin.open("a", newline="") as f:
+        w = csv.writer(f)
+        if nouveau:
+            w.writerow(["jour", "moment", "mode", "valeur_liquidative", "barreaux", "mes",
+                        "delta_avant_couverture", "mes_demandes", "cycles_fermes"])
+        w.writerow([jour.isoformat(), moment, mode, round(vl, 2), len(livre.barreaux),
+                    sum(livre.mes.values()), round(delta, 1), mes_trades, len(livre.cycles)])
+
+
 def _clotures_xsp(ib) -> list:
     """Clôtures quotidiennes de l'indice XSP sur ~4 mois, pour la volatilité réalisée."""
     try:
@@ -181,6 +196,7 @@ def seance(moment: str, aujourd_hui: Optional[date] = None,
         livre.noter_vl(vl)
         if mode == ex.MODE_REEL:
             rg.sauver(livre, livre_chemin)
+        _noter_seance(aujourd_hui, moment, mode, vl, livre, d, n)
         dire(dc.MO, f"Fin de séance. Valeur liquidative {vl:,.0f} $, "
                     f"{len(livre.barreaux)} barreau(x) ouverts, {len(livre.cycles)} fermés.")
         return 0
