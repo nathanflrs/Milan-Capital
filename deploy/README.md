@@ -253,6 +253,31 @@ journalctl -u milan-run --since today
 
 ---
 
+## Mettre à jour IB Gateway
+
+IBKR retire les anciennes versions : le Gateway prévient à chaque connexion
+API par l'avertissement **2172** (« needs to be upgraded … desupported on … »).
+Passage 10.45 → 10.50 fait le 2026-10-22, avant l'échéance du 2026-12-15.
+
+1. Installer la nouvelle version **à côté** de l'ancienne, dans
+   `/home/milan/Jts/ibgateway/<version sans point>` — même méthode que
+   `install_ibgateway.sh` (dossier provisoire, version lue dans le nom du
+   raccourci `IB Gateway X.YZ.desktop`, puis déplacement).
+2. **Vérifier `.install4j/inst_jre.cfg`** : il doit pointer vers
+   `<dossier de la version>/jre`. L'installateur y laisse son chemin
+   d'extraction temporaire, et IBC boucle alors sur « No java executable
+   found ».
+3. Dans `/home/milan/ibc/gatewaystart.sh` : `TWS_MAJOR_VRSN=<nouvelle version>`
+   (copie de l'ancien fichier en `.bak-<ancienne version>`).
+4. `systemctl restart ibgateway`, puis attendre `IBC: Login has completed`
+   dans le dernier fichier de `/home/milan/ibc/logs/` et vérifier qu'une
+   connexion API lit bien la valeur liquidative.
+
+Retour arrière : remettre l'ancien `TWS_MAJOR_VRSN` et redémarrer — l'ancienne
+version reste installée.
+
+---
+
 ## Arrêter, et arrêter de payer
 
 ```bash

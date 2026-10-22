@@ -79,6 +79,15 @@ else
   sudo -u "$APP_USER" mkdir -p "$GW_DIR/ibgateway"
   rm -rf "$TARGET"
   mv "$STAGING" "$TARGET"
+
+  # Depuis la 10.50, le Java est livré DANS le dossier (jre/), et
+  # .install4j/inst_jre.cfg note le chemin d'extraction temporaire de
+  # l'installateur, effacé ensuite. IBC lit ce fichier, ne trouve plus Java et
+  # boucle sur « No java executable found » (vu le 2026-10-22 lors du passage
+  # 10.45 → 10.50). On réécrit donc le chemin réel après le déplacement.
+  if [[ -x "$TARGET/jre/bin/java" ]]; then
+    printf '%s\n' "$TARGET/jre" > "$TARGET/.install4j/inst_jre.cfg"
+  fi
   chown -R "$APP_USER:$APP_USER" "$GW_DIR"
   ok "installé — version $DOTTED dans $TARGET"
 fi
