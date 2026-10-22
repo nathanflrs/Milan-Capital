@@ -215,6 +215,8 @@ def postmortem(jour: Optional[date] = None, *, client=None, dossier: Path = sc.D
     if not raisons:
         print(f"[{MEMBRE}] Journée calme : pas de post-mortem.")
         return None
+    if publier:
+        sc.annoncer(MEMBRE, "postmortem")
     consigne = ("Post-mortem du " + jour.isoformat() + ". Ce qui l'a déclenché :\n"
                 + "\n".join(f"- {r}" for r in raisons)
                 + "\nExamine chaque point avec tes outils, tranche sa nature, propose les leçons utiles.")
@@ -235,6 +237,8 @@ def revue(fin: Optional[date] = None, *, client=None, dossier: Path = sc.DOSSIER
           db: Path = jx.EVENEMENTS, publier: bool = True) -> sc.Resultat:
     fin = fin or datetime.now(sc.NEW_YORK).date()
     debut = fin - timedelta(days=fin.weekday())          # lundi de la semaine
+    if publier:
+        sc.annoncer(MEMBRE, "revue")
     consigne = (f"Revue de la semaine du {debut.isoformat()} au {fin.isoformat()}. Fais le "
                 f"bilan de chaque membre (y compris le code : Volatility Trader, Execution "
                 f"Trader), les constats, les leçons, puis écris le mémo commun de l'équipe au CIO.")

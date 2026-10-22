@@ -135,6 +135,8 @@ def relire(contexte: dict, stress: callable, jour: date, *, client=None,
         r = sc.Resultat(None, 0.0, 0, erreur="alerte du Research Analyst")
         return False, f"Frein d'office : alerte du Research Analyst — {motif}", r
 
+    if publier:
+        sc.annoncer(MEMBRE, "relecture")
     consigne = (
         f"Séance du {jour.isoformat()}. Le Volatility Trader propose d'ouvrir le barreau "
         f"{contexte['proposition'].get('echeance')}. Utilise tes outils, examine chaque "

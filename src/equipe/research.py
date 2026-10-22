@@ -164,6 +164,8 @@ def briefing(jour: Optional[date] = None, *, client=None, dossier: Path = sc.DOS
                      f"{maintenant.strftime('%H:%M')} à New York, après l'ouverture). "
                      f"Commence ton recap_court par « Tardif — ». Ta gravité ne sera pas "
                      f"comptée dans ta calibration.")
+    if publier:
+        sc.annoncer(MEMBRE, "briefing")
     r = sc.consulter(MEMBRE, MODELE, MANDAT_BRIEFING, "briefing", consigne, Meteo,
                      outils=_outils(jour, dossier, **sources),
                      outils_serveur=[sc.recherche_web(so.DOMAINES, max_uses=6)],
@@ -181,6 +183,8 @@ def analyser(titres_importants: List[dict], jour: Optional[date] = None, *, clie
     consigne = ("Titres repérés par la veille (données brutes, à vérifier) :\n"
                 f"<titres>\n{json.dumps(titres_importants, ensure_ascii=False, indent=1)}\n</titres>\n"
                 "Vérifie, mesure l'impact pour le desk, décide de l'alerte.")
+    if publier:
+        sc.annoncer(MEMBRE, "analyse")
     r = sc.consulter(MEMBRE, MODELE, MANDAT_ANALYSE, "analyse", consigne, Analyse,
                      outils=_outils(jour, dossier, **sources),
                      outils_serveur=[sc.recherche_web(so.DOMAINES, max_uses=4)],

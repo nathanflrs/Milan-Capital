@@ -313,9 +313,42 @@ def lire_memos(jour: str, membre: Optional[str] = None,
     return [m for m in memos if membre is None or m["membre"] == membre]
 
 
+def slug(membre: str) -> str:
+    return membre.lower().replace(" ", "-")
+
+
+def annoncer(membre: str, tache: str) -> None:
+    """Début de tâche → le voyant du membre passe « au travail » dans la salle des marchés.
+
+    Jamais notifié sur le téléphone : seule la fin d'une tâche l'est.
+    """
+    try:
+        from src.events.bus import Event, get_bus
+        get_bus().emit(Event(type="equipe", severity="info", title=membre,
+                             body=f"Au travail : {tache}.",
+                             meta={"role": membre, "tache": tache, "phase": "debut",
+                                   "notifier": False}))
+    except Exception as e:
+        print(f"(bus d'événements indisponible : {e})")
+
+
+def notifier_telephone(titre: str, corps: str, url: str = "/", tag: str = "milan",
+                       envoyer=None) -> None:
+    """Notification push sur tous les appareils inscrits (téléphone, Mac).
+
+    Ne lève jamais : une notification est un confort, pas une étape du desk.
+    """
+    try:
+        if envoyer is None:
+            from src.notify.push import send_push as envoyer
+        envoyer(titre, corps, url=url, tag=tag)
+    except Exception as e:
+        print(f"(notification non envoyée : {e})")
+
+
 def publier(membre: str, tache: str, r: Resultat, notifier: bool = True,
-            gravite: str = "info") -> None:
-    """Tâche terminée → bus d'événements (salle des marchés, notifications)."""
+            gravite: str = "info", envoyer=None) -> None:
+    """Tâche terminée → bus d'événements (salle des marchés) et, si demandé, téléphone."""
     court = r.memo.recap_court if r.memo else f"{tache} : échec — {r.erreur}"
     detail = r.memo.recap_detail if r.memo else (r.erreur or "")
     print(f"[{membre}] {court}  ({r.cout:.4f} $)")
@@ -323,8 +356,14 @@ def publier(membre: str, tache: str, r: Resultat, notifier: bool = True,
         from src.events.bus import Event, get_bus
         get_bus().emit(Event(type="equipe", severity=gravite if r.ok else "warning",
                              title=membre, body=court,
-                             meta={"role": membre, "tache": tache, "recap_detail": detail,
-                                   "cout_usd": round(r.cout, 5), "notifier": notifier,
-                                   "ok": r.ok}))
+                             meta={"role": membre, "tache": tache, "phase": "fin",
+                                   "recap_detail": detail, "cout_usd": round(r.cout, 5),
+                                   "notifier": notifier, "ok": r.ok}))
     except Exception as e:
         print(f"(bus d'événements indisponible : {e})")
+    # Choix de Nathan : chaque membre qui termine notifie, avec son récap ; la
+    # veille seulement si elle trouve quelque chose (notifier=False sinon). Un
+    # échec est toujours notifié : il demande peut-être une intervention.
+    if notifier or not r.ok:
+        notifier_telephone(membre, court, url=f"/?membre={slug(membre)}",
+                           tag=f"{slug(membre)}-{tache}", envoyer=envoyer)

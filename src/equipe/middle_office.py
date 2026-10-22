@@ -105,6 +105,8 @@ def rapport(jour: Optional[date] = None, *, client=None, dossier: Path = sc.DOSS
     jour = jour or datetime.now(sc.NEW_YORK).date()
     chemins = {"evenements": jx.EVENEMENTS, "seances": jx.SEANCES, "ordres": jx.ORDRES,
                "livre": jx.LIVRE, **(chemins or {})}
+    if publier:
+        sc.annoncer(MEMBRE, "rapport")
     jx.mettre_a_jour_calibration(dossier / "memos", dossier / "calibration.csv", lire_cboe)
     consigne = (f"Rapport du {jour.isoformat()}. Consulte tes outils, puis écris le rapport "
                 f"du soir pour le CIO.")

@@ -157,3 +157,24 @@ def test_memos_sauves_et_relus(tmp_path):
     (m,) = sc.lire_memos("2026-10-23", "Risk Manager", tmp_path)
     assert m["ok"] and m["memo"]["decision"] == "approuver"
     assert sc.lire_memos("2026-10-24", dossier=tmp_path) == []
+
+
+def test_notifications_telephone():
+    envoyees = []
+    envoyer = lambda titre, corps, url, tag: envoyees.append((titre, corps, url, tag))
+    ok = sc.Resultat(memo=NS(recap_court="Gravité 2, rien à signaler.", recap_detail="…"),
+                     cout=0.01, tours=1)
+    sc.publier("Research Analyst", "veille", ok, notifier=False, envoyer=envoyer)
+    assert envoyees == []                                   # veille silencieuse
+    sc.publier("Research Analyst", "briefing", ok, notifier=True, envoyer=envoyer)
+    assert envoyees[-1] == ("Research Analyst", "Gravité 2, rien à signaler.",
+                            "/?membre=research-analyst", "research-analyst-briefing")
+    rate = sc.Resultat(memo=None, cout=0.0, tours=1, erreur="panne de l'API")
+    sc.publier("Research Analyst", "veille", rate, notifier=False, envoyer=envoyer)
+    assert "échec" in envoyees[-1][1]                        # un échec est toujours notifié
+
+
+def test_une_notification_ne_casse_jamais_rien():
+    def en_panne(*a, **k):
+        raise ConnectionError("Apple injoignable")
+    sc.notifier_telephone("x", "y", envoyer=en_panne)       # ne lève pas

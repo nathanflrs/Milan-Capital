@@ -43,6 +43,14 @@ ZONE_SEANCE = 0.35
 
 def _publier(role: str, texte: str, moment: str, mode: str, gravite: str = "info") -> None:
     print(f"[{role}] {texte}")
+    if gravite == "critical":
+        # Écart avec le courtier, séance interrompue, remplissage partiel : le
+        # CIO doit le savoir tout de suite, sur son téléphone.
+        try:
+            from src.equipe.socle import notifier_telephone
+            notifier_telephone(f"Desk — {role}", texte[:180], url="/", tag="desk-incident")
+        except Exception:
+            pass
     try:
         from src.events.bus import Event, get_bus
         get_bus().emit(Event(type="desk", severity=gravite, title=role, body=texte,
