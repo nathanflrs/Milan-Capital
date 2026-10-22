@@ -96,6 +96,65 @@ Script : `scripts/desk_phase1ter_conviction.py`.
 
 ---
 
-## Résultats
+## Résultats — mesurés le 2026-10-22
 
-*(à compléter après la mesure)*
+*Sortie complète : `logs/desk_phase1ter_results.json`. Même période que la
+phase 1-bis (1990 → 14 octobre 2026), départ de référence 13.*
+
+### Taille
+
+Pour que les 21 départs restent au-dessus de −15 %, la taille de base par
+conviction doit descendre à **N = 0,06 %** par point, contre 0,11 % à taille
+fixe. Le palier ×2 oblige à réduire tout le reste.
+
+### Les critères
+
+| | Résultat | |
+|---|---|---|
+| **K1** — la prime prédit | pente +0,15 point de gain par point de prime, intervalle à 95 % **[−0,11 ; +0,42]** | ❌ contient 0 |
+| **K2** — plus de gain à pire baisse égale | départ 13 : **+1,8 %/an** contre +2,7 % à taille fixe ; la conviction ne gagne sur **aucun des 21 départs** | ❌ |
+| **K3** — tenue dans le temps | 1990-2007 : +2,1 % contre +3,6 % ; 2008-2026 : +1,6 % contre +1,9 % | ❌ |
+
+**Verdict : les trois critères échouent. Le vendeur garde une taille fixe.**
+L'idée « plus de risque » revient au point d'étape, sur résultats réels.
+
+### Ce que la conviction a fait, au départ 13
+
+| | Taille fixe (N = 0,11) | Conviction (N = 0,06) |
+|---|---|---|
+| Sharpe | 0,86 | 0,99 |
+| Gain au-dessus du cash | +2,7 %/an | +1,8 %/an |
+| Volatilité | 3,1 % | 1,8 % |
+| Pire baisse | −12,3 % | −6,6 % |
+
+| Épisode | Paliers | Fixe | Conviction |
+|---|---|---|---|
+| LTCM 1998 | 1 – 2 – 0,5 – 0,5 | −0,3 % | −1,3 % |
+| 2008 | 0,5 × 4 | −11,0 % | −3,1 % |
+| Août 2011 | 1 – 0,5 | −4,7 % | −2,8 % |
+| Volmageddon 2018 | 1 – 0,5 | −2,3 % | −1,2 % |
+| Mars 2020 | 1 – 1 – 0,5 | −11,3 % | −6,5 % |
+| Avril 2025 | 2 – 2 | −0,7 % | −0,7 % |
+
+### Hors protocole — pourquoi K2 échoue
+
+*Ajouté après la mesure, pour comprendre ; ne change pas le verdict.*
+
+Au départ 13, la conviction a été prudente au bon moment : en 2008, la prime
+paraissait petite (l'agitation réelle avait déjà rattrapé le VIX) et le
+système était à ×0,5. Mais la taille se fixe sur **le pire des 21 départs**,
+et celui-là raconte l'inverse.
+
+**Départ 14 : entrée début mars 2020** (échéance le 1er avril). Le VIX venait de bondir à 36,8,
+l'agitation des 21 séances passées était encore calme → prime apparente
+énorme → **palier ×2**. L'agitation a ensuite atteint 94. Une seule période :
+**−12,0 %** à la taille de base, la pire baisse de toute l'étude (−13,7 %).
+Les départs 9 à 17 tombent tous dans ce piège, tous à ×2, tous en mars 2020.
+
+**La leçon :** au tout début d'un krach, le VIX bondit avant que l'agitation
+réelle ne suive. La prime *paraît* alors la plus grosse au moment précis où
+elle est la plus dangereuse. Le signal se trompe sur le seul mois qui
+compte, et ce mois-là fixe la taille de tout le reste.
+
+Les deux signaux rapportés à côté échouent aussi aux trois critères
+(niveau du VIX : départ 13 à +1,5 %/an ; rapport VIX / agitation : +1,7 %/an).
