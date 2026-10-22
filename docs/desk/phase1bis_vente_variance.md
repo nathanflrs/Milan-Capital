@@ -114,6 +114,96 @@ Script : `scripts/desk_phase1bis_vente_variance.py`.
 
 ---
 
-## Résultats
+## Résultats — mesurés le 2026-10-22
 
-*(à compléter après la mesure)*
+*Sortie complète : `logs/desk_phase1bis_results.json`. Séances du 3 janvier
+1990 au 14 octobre 2026 (fin de la série Yahoo téléchargée) : 440 périodes de
+21 séances par départ.*
+
+### Deux précisions de lecture, signalées honnêtement
+
+- **Une erreur dans le protocole.** Il affirme que le bêta ne dépend pas de la
+  taille *N*. C'est faux : le bêta grandit avec *N*, seuls le Sharpe et la
+  corrélation n'en dépendent pas. C3 est donc lu **à la taille de la charte**,
+  la seule à laquelle le fonds opérerait — taille fixée par le protocole
+  lui-même, avant de voir les critères. La corrélation est rapportée à côté.
+- **« Départ médian »** n'était pas défini : c'est le départ dont le Sharpe est
+  le 11e sur 21 (séance 13).
+
+### Taille
+
+**N = 0,11 % du capital par point de volatilité.** Pour 1 M$, environ 1 100 $
+gagnés ou perdus par point d'écart entre la volatilité vendue et celle
+constatée.
+
+### Les chiffres
+
+| 1990 → 2026, frais déduits | Plafonné, départ médian | Plafonné, pire départ | Sans plafond, médian |
+|---|---|---|---|
+| **Sharpe** | **0,86** | 0,73 | 0,77 |
+| Sharpe du S&P 500, mêmes périodes | 0,58 | 0,62 | 0,58 |
+| Gain au-dessus du taux sans risque | +2,7 %/an | +2,4 %/an | +2,6 %/an |
+| Volatilité | 3,1 % | 3,3 % | 3,4 % |
+| **Alpha** | **+1,6 %/an [+0,3 ; +2,9]** | +1,3 %/an | +1,5 %/an |
+| Bêta à cette taille | 0,12 | 0,12 | 0,12 |
+| **Corrélation au S&P 500** | **0,59** | 0,52 | 0,57 |
+| Depuis 2015 | +2,1 %/an | +1,3 %/an | +1,8 %/an |
+| Pire baisse | −12,3 % (2008) | −13,6 % (2020) | −15,1 % |
+| Pire période | −10,1 % (mars 2020) | −10,0 % | −13,0 % |
+| Périodes gagnantes | 83 % | 80 % | 83 % |
+
+### Les critères
+
+| | Départ médian | Part des 21 départs qui passent |
+|---|---|---|
+| **C1** — Sharpe ≥ S&P 500 | ✅ 0,86 ≥ 0,58 | 21 / 21 |
+| **C2** — alpha à 95 % au-dessus de 0 | ✅ [+0,3 % ; +2,9 %] | 20 / 21 |
+| **C3** — bêta < 0,3 | ✅ 0,12 | 21 / 21 |
+| **C4** — gain depuis 2015 > 0 | ✅ +2,1 %/an | 21 / 21 |
+
+### Épisodes de stress, à la taille de la charte
+
+| Épisode | Résultat | VIX à l'entrée → agitation constatée |
+|---|---|---|
+| LTCM 1998 | −0,3 % | 31,9 → 40,5 |
+| 2008 | **−11,0 %** | 35,2 → 81,3 |
+| Août 2011 | −4,7 % | 20,2 → 47,4 |
+| Volmageddon 2018 | −2,3 % | 13,8 → 25,9 |
+| Mars 2020 | **−11,3 %** | 33,4 → 93,4 |
+| Avril 2025 | −0,7 % | 24,9 → 32,8 |
+
+### Verdict
+
+**Les quatre critères passent.** Selon le protocole, on construit le vendeur
+(charte, section 6, étape 2), et la phase suivante teste l'exécution réelle
+sur prix d'options.
+
+### Ce que le verdict ne dit pas — trois réserves
+
+1. **« Neutre au marché » est trop fort.** Le bêta est faible parce que la
+   position est petite ; la **corrélation de 0,59** dit que la stratégie perd
+   quand le marché chute. Normal : l'agitation explose dans les krachs. La
+   couverture en delta retire la direction, pas ce lien-là. Ce qui nous
+   protège, c'est la taille et le plafond, pas la neutralité. L'agent
+   couverture n'est pas un luxe.
+2. **Le gain est modeste.** À la taille de la charte : environ +2,7 %/an
+   au-dessus du taux sans risque. Mieux payé par unité de risque que le
+   marché, mais avec peu de risque.
+3. **Le proxy est flatteur et les baisses sont sous-estimées** (section 3) :
+   le desk réel fera moins bien, et les pires baisses en cours de mois de
+   2008 et 2020 ont été plus profondes que ce qui est mesuré ici.
+
+### Hors protocole — que coûterait plus de taille ?
+
+*Ajouté après la mesure, pour la question « prendre plus de risque ».*
+
+| *N* (% du capital par point) | 0,11 (charte) | 0,25 | 0,50 |
+|---|---|---|---|
+| Gain au-dessus du cash | +2,7 %/an | +6,1 %/an | +12,2 %/an |
+| Volatilité | 3,1 % | 7,1 % | 14,2 % |
+| Pire baisse (départ médian) | −12,3 % | −27,4 % | −51,8 % |
+| Pire baisse (pire des 21 départs) | −14,7 % | −31,7 % | −56,8 % |
+
+À *N* = 0,50, la volatilité égale celle du S&P 500 et la pire baisse aussi :
+même risque que le marché, Sharpe meilleur. Mais c'est hors charte, et la
+charte ne se change qu'au point d'étape.
