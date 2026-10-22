@@ -17,17 +17,19 @@ protocole (docs/desk/phase2_observation.md) : zéro écart inexpliqué.
 On n'« adopte » jamais automatiquement la version du courtier : corriger le
 registre sans comprendre l'écart, c'est effacer la trace de l'erreur.
 
-Résultat d'un cycle
--------------------
-Le compte ne contient que le desk : la variation de la valeur liquidative
-entre l'ouverture et la fermeture d'un cycle EST son résultat net (options,
-MES, commissions, intérêts compris). On la note aux deux bouts.
+Échelle hebdomadaire (amendement 1 du protocole)
+------------------------------------------------
+Le livre contient plusieurs barreaux à la fois : un iron butterfly ouvert
+chaque semaine, fermé à 7 jours. Chaque barreau est mesuré séparément (son
+crédit, son débit de fermeture, son vega à l'entrée) ; le résultat net du
+desk, lui, se lit sur la valeur liquidative du compte depuis l'armement, le
+compte ne contenant que le desk.
 """
 from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass, field
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
@@ -39,6 +41,7 @@ Cle = Tuple[str, float, str]      # (type, strike, échéance) ; ('MES', 0, éch
 
 @dataclass
 class Butterfly:
+    """Un barreau de l'échelle : un iron butterfly ouvert, d'un ou plusieurs lots."""
     echeance: str
     aile_put: float
     centre: float
@@ -49,12 +52,20 @@ class Butterfly:
     vega_lot: float
     perte_max_lot: float
     iv_atm: float
-    vl_ouverture: float
+
+    @property
+    def jambes(self) -> Tuple[Tuple[str, float, int], ...]:
+        """(type, strike, sens) : +1 acheté, −1 vendu."""
+        return (("P", self.aile_put, +1), ("P", self.centre, -1),
+                ("C", self.centre, -1), ("C", self.aile_call, +1))
+
+    def dte(self, aujourd_hui: date) -> int:
+        return (datetime.strptime(self.echeance, "%Y%m%d").date() - aujourd_hui).days
 
 
 @dataclass
 class Cycle:
-    """Un cycle fermé : ce qu'on mesure pour le protocole."""
+    """Un barreau fermé : ce qu'on mesure pour le protocole."""
     echeance: str
     lots: int
     ouvert_le: str
@@ -62,52 +73,49 @@ class Cycle:
     credit: float
     debit_fermeture: float
     vega_ouverture: float         # vega_lot × lots, en $ par point de vol
-    vl_ouverture: float
-    vl_fermeture: float
 
     @property
     def resultat_options(self) -> float:
         return (self.credit - self.debit_fermeture) * 100 * self.lots
 
     @property
-    def resultat_net(self) -> float:
-        return self.vl_fermeture - self.vl_ouverture
+    def resultat_par_point(self) -> float:
+        """Résultat ÷ vega à l'entrée : comparable à la simulation, quelle que soit la taille."""
+        return self.resultat_options / self.vega_ouverture if self.vega_ouverture else 0.0
 
 
 @dataclass
 class Livre:
-    butterfly: Optional[Butterfly] = None
+    barreaux: List[Butterfly] = field(default_factory=list)
     mes: Dict[str, int] = field(default_factory=dict)     # échéance → quantité
     plus_haut: float = 0.0                                # valeur liquidative max
+    vl_armement: float = 0.0                              # point de départ de P1
     cycles: List[Cycle] = field(default_factory=list)
 
     # ── Ce qu'on attend chez le courtier ────────────────────────────────────
     def attendu(self) -> Dict[Cle, int]:
         a: Dict[Cle, int] = {}
-        b = self.butterfly
-        if b and b.lots:
-            for t, k, s in (("P", b.aile_put, +1), ("P", b.centre, -1),
-                            ("C", b.centre, -1), ("C", b.aile_call, +1)):
-                a[(t, float(k), b.echeance)] = a.get((t, float(k), b.echeance), 0) + s * b.lots
+        for b in self.barreaux:
+            for t, k, s in b.jambes:
+                cle = (t, float(k), b.echeance)
+                a[cle] = a.get(cle, 0) + s * b.lots
         for e, q in self.mes.items():
             if q:
                 a[("MES", 0.0, e)] = q
-        return a
+        return {k: v for k, v in a.items() if v}
 
     # ── Mises à jour, après exécution confirmée ─────────────────────────────
     def ouvrir(self, b: Butterfly) -> None:
-        if self.butterfly:
-            raise ValueError("un butterfly est déjà ouvert")
-        self.butterfly = b
+        if b.lots <= 0:
+            raise ValueError("un barreau sans lot n'est pas un barreau")
+        self.barreaux.append(b)
 
-    def fermer(self, debit: float, le: str, vl: float) -> Cycle:
-        b = self.butterfly
-        if not b:
-            raise ValueError("aucun butterfly à fermer")
-        c = Cycle(b.echeance, b.lots, b.ouvert_le, le, b.credit, debit,
-                  b.vega_lot * b.lots, b.vl_ouverture, vl)
+    def fermer(self, b: Butterfly, debit: float, le: str) -> Cycle:
+        if b not in self.barreaux:
+            raise ValueError("ce barreau n'est pas dans le registre")
+        c = Cycle(b.echeance, b.lots, b.ouvert_le, le, b.credit, debit, b.vega_lot * b.lots)
         self.cycles.append(c)
-        self.butterfly = None
+        self.barreaux.remove(b)
         return c
 
     def mes_trade(self, echeance: str, quantite: int) -> None:
@@ -126,9 +134,10 @@ def charger(chemin: Path = LIVRE) -> Livre:
         return Livre()
     d = json.loads(chemin.read_text())
     return Livre(
-        butterfly=Butterfly(**d["butterfly"]) if d.get("butterfly") else None,
+        barreaux=[Butterfly(**b) for b in d.get("barreaux", [])],
         mes={k: int(v) for k, v in d.get("mes", {}).items()},
         plus_haut=float(d.get("plus_haut", 0.0)),
+        vl_armement=float(d.get("vl_armement", 0.0)),
         cycles=[Cycle(**c) for c in d.get("cycles", [])],
     )
 
@@ -138,8 +147,8 @@ def sauver(livre: Livre, chemin: Path = LIVRE) -> None:
     chemin.parent.mkdir(parents=True, exist_ok=True)
     provisoire = chemin.with_suffix(".tmp")
     provisoire.write_text(json.dumps({
-        "butterfly": asdict(livre.butterfly) if livre.butterfly else None,
-        "mes": livre.mes, "plus_haut": livre.plus_haut,
+        "barreaux": [asdict(b) for b in livre.barreaux],
+        "mes": livre.mes, "plus_haut": livre.plus_haut, "vl_armement": livre.vl_armement,
         "cycles": [asdict(c) for c in livre.cycles],
     }, indent=2, ensure_ascii=False))
     provisoire.replace(chemin)

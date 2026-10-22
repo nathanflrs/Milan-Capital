@@ -46,7 +46,7 @@ import sys
 import time
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence
+from typing import Callable, Iterable, List, Optional, Sequence
 
 import pandas as pd
 
@@ -94,8 +94,9 @@ def choisir_echeances(echeances: Iterable[str], aujourd_hui: date,
     return retenues
 
 
-def choisir_strikes(strikes: Iterable[float], spot: float) -> List[float]:
-    """Tous les prix d'exercice proches, puis un sur PAS_LARGE plus loin."""
+def choisir_strikes(strikes: Iterable[float], spot: float,
+                    zone_large: float = ZONE_LARGE) -> List[float]:
+    """Tous les prix d'exercice proches, puis un sur PAS_LARGE jusqu'à zone_large."""
     retenus = []
     for k in sorted(set(strikes)):
         # Arrondi : 97 / 100 − 1 vaut 0,0300000000000000027 en virgule
@@ -103,7 +104,7 @@ def choisir_strikes(strikes: Iterable[float], spot: float) -> List[float]:
         ecart = round(abs(k / spot - 1), 9)
         if ecart <= ZONE_FINE:
             retenus.append(k)
-        elif ecart <= ZONE_LARGE and float(k).is_integer() and int(k) % PAS_LARGE == 0:
+        elif ecart <= zone_large and float(k).is_integer() and int(k) % PAS_LARGE == 0:
             retenus.append(k)
     return retenus
 
@@ -170,7 +171,11 @@ def _cours(ib, contrat) -> Optional[float]:
 
 
 def collecter_symbole(ib, symbole: str, aujourd_hui: date,
-                      journal: Path = JOURNAL) -> pd.DataFrame:
+                      journal: Path = JOURNAL,
+                      choisir: Optional[Callable[[Iterable[str]], List[str]]] = None,
+                      zone_large: float = ZONE_LARGE) -> pd.DataFrame:
+    """Photo de la chaîne. Par défaut, celle du collecteur quotidien ; le desk
+    passe ses propres échéances (`choisir`) et une zone plus large."""
     from ib_insync import Contract, Option
 
     debut = time.time()
@@ -186,8 +191,8 @@ def collecter_symbole(ib, symbole: str, aujourd_hui: date,
         raise RuntimeError(f"{symbole} : aucune chaîne d'options")
     chaine = next((c for c in chaines if c.exchange == "SMART"), chaines[0])
 
-    echeances = choisir_echeances(chaine.expirations, aujourd_hui)
-    strikes = choisir_strikes(chaine.strikes, spot)
+    echeances = (choisir or (lambda e: choisir_echeances(e, aujourd_hui)))(chaine.expirations)
+    strikes = choisir_strikes(chaine.strikes, spot, zone_large)
     candidats = [Option(symbole, e, k, droit, "SMART", tradingClass=symbole)
                  for e in echeances for k in strikes for droit in ("P", "C")]
     # Toutes les combinaisons échéance × prix d'exercice n'existent pas :
