@@ -60,8 +60,9 @@ fort. Revu après la première semaine, sur les coûts mesurés.*
 5. **Sources du Research Analyst** (choix de Nathan) : sources officielles et
    recherche web limitée à une liste de sites fixée ici :
    federalreserve.gov, bls.gov, bea.gov, treasury.gov, sec.gov, whitehouse.gov,
-   cboe.com, cmegroup.com, reuters.com, apnews.com, cnbc.com, marketwatch.com,
-   bloomberg.com, ft.com, wsj.com.
+   cboe.com, cmegroup.com, cnbc.com, bloomberg.com. *(AP, FT, MarketWatch,
+   Reuters et WSJ retirés le 2026-10-22 : ils bloquent le robot de recherche
+   d'Anthropic ; MarketWatch et le WSJ restent lus par flux RSS.)*
 6. **Un texte de référence commun.** La charte et le protocole sont chargés
    tels quels dans le contexte de chaque membre (mis en cache). Ce qu'ils
    disent, toute l'équipe le sait.

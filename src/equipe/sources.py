@@ -35,8 +35,13 @@ FLUX: Dict[str, str] = {
 
 # Recherche web du Research Analyst : seulement ces domaines.
 DOMAINES = ["federalreserve.gov", "bls.gov", "bea.gov", "treasury.gov", "sec.gov",
-            "whitehouse.gov", "cboe.com", "cmegroup.com", "reuters.com", "apnews.com",
-            "cnbc.com", "marketwatch.com", "bloomberg.com", "ft.com", "wsj.com"]
+            "whitehouse.gov", "cboe.com", "cmegroup.com", "cnbc.com", "bloomberg.com"]
+
+# Refusés par la recherche web d'Anthropic (« not accessible to our user
+# agent », 400 au premier briefing réel, 2026-10-22) : ces sites bloquent son
+# robot. MarketWatch et le WSJ restent lus par NOTRE code via leurs flux
+# publics (FLUX ci-dessus).
+DOMAINES_REFUSES = ["apnews.com", "ft.com", "marketwatch.com", "reuters.com", "wsj.com"]
 
 CBOE = "https://cdn.cboe.com/api/global/us_indices/daily_prices/{}_History.csv"
 AGENT = "Mozilla/5.0 MilanCapital/1.0"

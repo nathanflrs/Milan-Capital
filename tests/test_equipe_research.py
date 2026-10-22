@@ -159,3 +159,9 @@ def test_journal_des_passages(tmp_path):
     vl.passage(client=FauxClient([]), dossier=tmp_path, titres_fn=flux_fixe(), publier=False)
     lignes = (tmp_path / "veille.csv").read_text().splitlines()
     assert lignes[0].startswith("horodatage") and len(lignes) == 2
+
+
+def test_aucun_domaine_refuse_par_la_recherche_web():
+    # 400 au premier briefing réel : la liste entière est refusée si un seul
+    # domaine bloque le robot d'Anthropic.
+    assert not set(so.DOMAINES) & set(so.DOMAINES_REFUSES)
