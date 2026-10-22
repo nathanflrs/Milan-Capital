@@ -78,3 +78,8 @@ logs/fundamentals_snapshot/*
 
 # Documents de travail Apple (binaires, illisibles sur GitHub).
 *.pages
+
+# Photos quotidiennes des chaînes d'options (src/options/collect.py) :
+# ~200 Ko par jour, accumulées sur le serveur. Données de marché IBKR, pas à
+# publier dans un dépôt public.
+logs/options_chain/

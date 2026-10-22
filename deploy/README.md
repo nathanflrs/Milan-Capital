@@ -251,6 +251,16 @@ systemctl status milan-run.timer
 journalctl -u milan-run --since today
 ```
 
+La photo quotidienne des options SPY et XSP (`milan-options.timer`, 15 h 45 à
+New York, lecture seule) tient son propre journal : une ligne par jour et par
+symbole, avec le nombre de contrats qui ont un prix. Un jour sans ligne est un
+jour perdu.
+
+```bash
+tail -4 /opt/milan/logs/options_chain/journal.csv
+journalctl -u milan-options --since today
+```
+
 ---
 
 ## Mettre à jour IB Gateway

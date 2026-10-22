@@ -1,0 +1,25 @@
+[Unit]
+Description=Milan Capital — photo quotidienne des chaînes d'options SPY et XSP
+After=network-online.target ibgateway.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=milan
+Group=milan
+WorkingDirectory=/opt/milan
+EnvironmentFile=/opt/milan/.env
+Environment=PYTHONUNBUFFERED=1
+
+# Connexion en lecture seule (readonly=True) : aucun ordre ne peut partir de
+# ce service. Client API 21, distinct du run (1) pour ne pas se gêner.
+ExecStart=/opt/milan/.venv/bin/python -m src.options.collect
+
+# ~4 minutes mesurées le 2026-10-22 pour ~2 100 contrats.
+TimeoutStartSec=1800
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/milan

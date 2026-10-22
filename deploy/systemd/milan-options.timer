@@ -1,0 +1,18 @@
+[Unit]
+Description=Milan Capital — déclenche la photo des chaînes d'options
+
+[Timer]
+# 15:45 à New York, du lundi au vendredi. Les prix arrivent avec 15 minutes de
+# retard (pas d'abonnement OPRA) : la photo montre le marché vers 15 h 30,
+# encore liquide et proche de la clôture. Après 16 h, les cotations d'options
+# se vident et la photo perdrait ses prix achat-vente.
+# Zone explicite, comme milan-run.timer : les changements d'heure américains
+# et européens ne tombent pas aux mêmes dates.
+OnCalendar=Mon-Fri 15:45 America/New_York
+
+# Pas de Persistent : une photo rattrapée après la clôture n'aurait pas de
+# prix achat-vente. Un jour raté reste un trou visible dans journal.csv.
+RandomizedDelaySec=30
+
+[Install]
+WantedBy=timers.target
