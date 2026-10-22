@@ -1,0 +1,14 @@
+[Unit]
+Description=Milan Capital — veille du Research Analyst (toutes les 30 min en séance)
+
+[Timer]
+# 9 h 30, puis toutes les demi-heures jusqu'à 16 h (New York). Zone explicite :
+# les changements d'heure américains et européens ne tombent pas aux mêmes dates.
+OnCalendar=Mon-Fri 09:30 America/New_York
+OnCalendar=Mon-Fri 10..15:00,30 America/New_York
+OnCalendar=Mon-Fri 16:00 America/New_York
+Unit=milan-equipe@veille.service
+RandomizedDelaySec=20
+
+[Install]
+WantedBy=timers.target

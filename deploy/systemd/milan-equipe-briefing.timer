@@ -1,0 +1,10 @@
+[Unit]
+Description=Milan Capital — briefing du Research Analyst (8 h 30, New York)
+
+[Timer]
+OnCalendar=Mon-Fri 08:30 America/New_York
+Unit=milan-equipe@briefing.service
+RandomizedDelaySec=30
+
+[Install]
+WantedBy=timers.target

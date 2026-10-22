@@ -1,0 +1,24 @@
+[Unit]
+Description=Milan Capital — tâche de l'équipe : %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=milan
+Group=milan
+WorkingDirectory=/opt/milan
+EnvironmentFile=/opt/milan/.env
+Environment=PYTHONUNBUFFERED=1
+
+# Lecture seule : les membres lisent, raisonnent et rendent un mémo
+# (docs/desk/equipe.md). Aucun ordre ne peut partir d'ici : ce service
+# n'importe pas le courtier.
+ExecStart=/opt/milan/.venv/bin/python -m src.equipe %i
+TimeoutStartSec=900
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/milan

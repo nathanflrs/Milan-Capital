@@ -90,6 +90,9 @@ install -m 644 "$APP_DIR/deploy/systemd/milan-options.timer"     /etc/systemd/sy
 install -m 644 "$APP_DIR/deploy/systemd/milan-desk@.service"     /etc/systemd/system/
 install -m 644 "$APP_DIR/deploy/systemd/milan-desk-1030.timer"   /etc/systemd/system/
 install -m 644 "$APP_DIR/deploy/systemd/milan-desk-1530.timer"   /etc/systemd/system/
+install -m 644 "$APP_DIR/deploy/systemd/milan-equipe@.service"   /etc/systemd/system/
+install -m 644 "$APP_DIR/deploy/systemd/milan-equipe-briefing.timer" /etc/systemd/system/
+install -m 644 "$APP_DIR/deploy/systemd/milan-equipe-veille.timer"   /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable milan-dashboard >/dev/null
 # La collecte nocturne n'importe pas le courtier : aucun ordre ne peut en
@@ -101,6 +104,8 @@ systemctl enable --now milan-options.timer >/dev/null
 # Les séances du desk tournent en simulation tant que DESK_ENABLED n'est pas
 # ouvert dans .env : armées dès l'installation, elles ne transmettent rien.
 systemctl enable --now milan-desk-1030.timer milan-desk-1530.timer >/dev/null
+# L'équipe Claude lit et écrit des mémos, sans accès au courtier.
+systemctl enable --now milan-equipe-briefing.timer milan-equipe-veille.timer >/dev/null
 ok "dashboard, collecte nocturne et photo des options activés ; le run de trading reste éteint (étape 5)"
 
 log "Caddy — HTTPS automatique"
