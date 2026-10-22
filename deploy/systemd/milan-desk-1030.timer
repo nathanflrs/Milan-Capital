@@ -1,0 +1,16 @@
+[Unit]
+Description=Milan Capital — déclenche la séance du desk de 10:30 (New York)
+
+[Timer]
+# Contrôles du protocole (docs/desk/phase2_observation.md, section 2) :
+# 10 h 30 et 15 h 30 à New York, du lundi au vendredi. Zone explicite, comme
+# milan-run.timer : les changements d'heure américains et européens ne tombent
+# pas aux mêmes dates.
+OnCalendar=Mon-Fri 10:30 America/New_York
+Unit=milan-desk@1030.service
+
+# Pas de Persistent : une séance rattrapée hors marché n'aurait pas de prix.
+RandomizedDelaySec=20
+
+[Install]
+WantedBy=timers.target

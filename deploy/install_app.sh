@@ -87,6 +87,9 @@ install -m 644 "$APP_DIR/deploy/systemd/milan-market.service"    /etc/systemd/sy
 install -m 644 "$APP_DIR/deploy/systemd/milan-market.timer"      /etc/systemd/system/
 install -m 644 "$APP_DIR/deploy/systemd/milan-options.service"   /etc/systemd/system/
 install -m 644 "$APP_DIR/deploy/systemd/milan-options.timer"     /etc/systemd/system/
+install -m 644 "$APP_DIR/deploy/systemd/milan-desk@.service"     /etc/systemd/system/
+install -m 644 "$APP_DIR/deploy/systemd/milan-desk-1030.timer"   /etc/systemd/system/
+install -m 644 "$APP_DIR/deploy/systemd/milan-desk-1530.timer"   /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable milan-dashboard >/dev/null
 # La collecte nocturne n'importe pas le courtier : aucun ordre ne peut en
@@ -95,6 +98,9 @@ systemctl enable --now milan-market.timer >/dev/null
 # La photo des options se connecte au courtier, mais en lecture seule
 # (readonly=True) : même raisonnement, armée dès l'installation.
 systemctl enable --now milan-options.timer >/dev/null
+# Les séances du desk tournent en simulation tant que DESK_ENABLED n'est pas
+# ouvert dans .env : armées dès l'installation, elles ne transmettent rien.
+systemctl enable --now milan-desk-1030.timer milan-desk-1530.timer >/dev/null
 ok "dashboard, collecte nocturne et photo des options activés ; le run de trading reste éteint (étape 5)"
 
 log "Caddy — HTTPS automatique"

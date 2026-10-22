@@ -261,6 +261,21 @@ tail -4 /opt/milan/logs/options_chain/journal.csv
 journalctl -u milan-options --since today
 ```
 
+Le desk de volatilité tient deux séances par jour (`milan-desk-1030.timer`,
+`milan-desk-1530.timer`, heure de New York). **Tant que `DESK_ENABLED` n'est
+pas à `true` dans `/opt/milan/.env`, elles tournent en simulation** : chaque
+ordre est soumis à IBKR en whatIf, rien n'est transmis, le registre ne bouge
+pas. C'est la répétition générale avant l'armement.
+
+```bash
+journalctl -u 'milan-desk@*' --since today      # ce que l'équipe a fait
+tail -5 /opt/milan/logs/desk/ordres.csv         # ordres simulés ou réels
+```
+
+**Le troisième verrou.** Armer le desk exige `DESK_ENABLED=true` **et**
+`EXECUTION_ENABLED=true`. Refermer l'un des deux suffit à le remettre en
+simulation, sans toucher au reste du système.
+
 ---
 
 ## Mettre à jour IB Gateway

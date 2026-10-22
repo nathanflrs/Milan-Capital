@@ -1,0 +1,29 @@
+[Unit]
+Description=Milan Capital — séance du desk de volatilité (%i, heure de New York)
+After=network-online.target ibgateway.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=milan
+Group=milan
+WorkingDirectory=/opt/milan
+EnvironmentFile=/opt/milan/.env
+Environment=PYTHONUNBUFFERED=1
+
+# Mode : SIMULATION tant que DESK_ENABLED n'est pas ouvert dans .env, même si
+# EXECUTION_ENABLED l'est (src/options/execution.py, mode_autorise). En
+# simulation, chaque ordre est soumis à IBKR en whatIf, rien n'est transmis,
+# et le registre ne bouge pas. Client API 22, distinct du run (1) et de la
+# photo des options (21).
+ExecStart=/opt/milan/.venv/bin/python -m src.options.desk %i
+
+# Photo de la chaîne ~3 min ; en mode réel, jusqu'à 15 min d'attente par ordre
+# combiné (paliers du protocole).
+TimeoutStartSec=3600
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/milan

@@ -162,8 +162,11 @@ def seance(moment: str, aujourd_hui: Optional[date] = None,
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Une séance du desk de volatilité.")
-    p.add_argument("moment", choices=["10:30", "15:30"])
-    return seance(p.parse_args(argv).moment)
+    # « 1030 » et « 1530 » : la forme sans deux-points des noms d'instance
+    # systemd (milan-desk@1030.service).
+    p.add_argument("moment", choices=["10:30", "15:30", "1030", "1530"])
+    m = p.parse_args(argv).moment
+    return seance(m if ":" in m else f"{m[:2]}:{m[2:]}")
 
 
 if __name__ == "__main__":
