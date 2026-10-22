@@ -126,3 +126,45 @@ mêmes semaines :
   jours et couverture discrète les font diverger, même sans erreur. F4
   tolère 1,5 point pour cette raison ; ce seuil est un jugement, pas une
   statistique.
+
+---
+
+## Amendement 1 — 2026-10-22, avant l'armement : l'échelle hebdomadaire
+
+*Décidé avec Nathan après le rapport du 2026-10-22. Ajouté sous le protocole
+d'origine, qui reste lisible tel qu'il a été commité (65f74d7). Aucune
+position n'a encore été ouverte : l'amendement ne peut s'appuyer sur aucun
+résultat.*
+
+**Pourquoi.** Le protocole d'origine ouvrait tout le livre le même jour, une
+fois toutes les trois semaines : un seul pari sur le timing. La phase 1-bis a
+montré que le résultat dépend fortement du jour de départ (9 départs sur 21
+ont pris mars 2020 de plein fouet). Étaler les ouvertures dans le temps
+diversifie ce risque, et donne au desk le flux régulier que Nathan demandait.
+C'est la même stratégie, mieux répartie : ce qu'a mesuré la phase 1-bis, en
+moyenne sur les départs.
+
+**Ce qui remplace les lignes Échéance, Sortie et Taille de la section 2 :**
+
+| Élément | Règle |
+|---|---|
+| **Barreau** | Chaque semaine, au contrôle de 10 h 30 du premier jour de bourse de la semaine, le desk ouvre **un** iron butterfly (même structure, mêmes ailes) sur le vendredi XSP le plus proche de 30 jours, entre 25 et 35. |
+| **Sortie** | À chaque contrôle, tout barreau à **7 jours ou moins** est fermé. Chaque barreau vit donc environ trois semaines : **3 à 4 barreaux** ouverts en même temps. |
+| **Taille d'un barreau** | **1 lot**, l'unité minimale d'XSP. Il est ouvert seulement si, barreau compris : sa perte maximale ≤ 2 % de la valeur liquidative ; le vega total du livre ≤ 0,11 % de la valeur liquidative par point (taille testée) ; le stress −20 % ≤ 10 %. |
+| **État « réduire » (−8 %)** | Pas de nouveau barreau tant que le livre en compte 2 ou plus. Avec des barreaux d'un lot, c'est la façon la plus proche de « diviser la taille par deux » : le livre se réduit de lui-même en deux à trois semaines. |
+| **État « arrêt » (−15 %)** | Aucun nouveau barreau ; les barreaux ouverts vont à leur sortie, la couverture continue. |
+
+**Ordre de grandeur, sur la photo XSP du 2026-10-22 :** 3 à 4 barreaux d'un
+lot, soit un vega de 420 à 560 $ par point (0,04 à 0,05 % de la valeur
+liquidative, sous la taille testée) et une perte maximale totale de 18 000 à
+24 000 $ (1,8 à 2,3 %).
+
+**Ce qui change dans la mesure.** L'unité de mesure de la section 5 devient le
+**barreau** : chacun a sa date d'entrée, sa date de sortie, son vega, sa
+simulation des mêmes semaines. Sur trois mois, une dizaine de barreaux fermés
+au lieu de trois cycles : F3 et F4 reposent sur plus d'observations. P1 se lit
+sur le résultat net cumulé du compte, inchangé. La période d'observation va
+de l'armement jusqu'à la fermeture du dixième barreau.
+
+**Rien d'autre ne change** : instrument, structure, ailes, couverture, limites,
+critères.
