@@ -334,7 +334,7 @@ def test_un_seul_appel_sur_un_dossier(tmp_path):
     r = tr.proposer(ctx, client=client, publier=False)
     assert r.ok and len(client.requetes) == 1
     q = client.requetes[0]
-    assert q["model"] == tr.MODELE == "claude-sonnet-5-5"
+    assert q["model"] == tr.MODELE == "claude-opus-5-5"
     assert [t["type"] for t in q["tools"]] == ["web_search_20260209"] and q["tools"][0]["max_uses"] == 2
     texte = q["messages"][0]["content"]
     d = json.loads(texte.split("<dossier>\n")[1].split("\n</dossier>")[0])

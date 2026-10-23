@@ -69,6 +69,7 @@ TEXTES_DE_REFERENCE = ("docs/charte.md", "docs/desk/phase2_observation.md",
 # jamais un accord.
 BUDGET_MOIS_USD = 20.0
 BUDGET_JOUR_USD = 2.0
+ALERTE_MOIS_USD = 15.0            # notification au CIO, une fois par mois
 
 PERSONA = """\
 Tu es membre de l'équipe de Milan Capital, un desk de volatilité systématique \
@@ -230,6 +231,21 @@ def plafond_atteint(chemin: Path = COUTS, maintenant: Optional[datetime] = None,
     return None
 
 
+def alerter_si_seuil(chemin: Path = COUTS, maintenant: Optional[datetime] = None,
+                     seuil: float = ALERTE_MOIS_USD, envoyer=None) -> bool:
+    """Prévient le CIO, une seule fois par mois, quand la dépense du mois atteint le seuil."""
+    maintenant = (maintenant or datetime.now(timezone.utc)).astimezone(NEW_YORK)
+    mois, _ = depense(chemin, maintenant)
+    repere = chemin.parent / f"alerte_budget_{maintenant:%Y-%m}"
+    if mois < seuil or repere.exists():
+        return False
+    repere.write_text(f"{mois:.2f}\n")
+    notifier_telephone("Budget de l'équipe",
+                       f"{mois:.2f} $ dépensés ce mois-ci, sur 20 $ au maximum. Au-delà, plus "
+                       f"aucun appel à Claude.", url="/protocole", tag="budget", envoyer=envoyer)
+    return True
+
+
 def _avec_cache(messages: List[dict]) -> List[dict]:
     """Les messages, le dernier bloc du dernier message marqué pour le cache.
 
@@ -354,6 +370,7 @@ def consulter(membre: str, modele: str, mandat: str, tache: str, consigne: str,
         r.erreur = f"{type(e).__name__} : {str(e)[:200]}"
     if journal:
         _noter_cout(membre, tache, modele, r, journal)
+        alerter_si_seuil(journal)
     return r
 
 

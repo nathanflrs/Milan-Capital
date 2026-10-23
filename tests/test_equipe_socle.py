@@ -222,3 +222,19 @@ def test_plafond_du_budget(tmp_path):
         del os.environ["EQUIPE_BUDGET_MOIS_USD"]
     assert not r.ok and "budget" in r.erreur and c.requetes == []
     assert "budget" in journal.read_text().splitlines()[-1]
+
+
+def test_alerte_budget_une_fois_par_mois(tmp_path):
+    from datetime import datetime, timezone
+    journal = tmp_path / "couts.csv"
+    maintenant = datetime(2026, 10, 23, 18, 0, tzinfo=timezone.utc)
+    journal.write_text("horodatage,membre,tache,modele,tours,entree,sortie,cache_lu,cache_ecrit,"
+                       "recherches_web,cout_usd,statut\n2026-10-22T15:00:00+00:00,X,t,m,1,0,0,0,0,0,14,ok\n")
+    envois = []
+    envoyer = lambda *a, **k: envois.append(a)
+    assert not sc.alerter_si_seuil(journal, maintenant, envoyer=envoyer)
+    with journal.open("a") as f:
+        f.write("2026-10-23T15:00:00+00:00,X,t,m,1,0,0,0,0,0,1.5,ok\n")
+    assert sc.alerter_si_seuil(journal, maintenant, envoyer=envoyer)
+    assert not sc.alerter_si_seuil(journal, maintenant, envoyer=envoyer)     # une seule fois
+    assert len(envois) == 1 and "15.50 $" in envois[0][1]

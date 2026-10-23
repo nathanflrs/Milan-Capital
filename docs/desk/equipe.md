@@ -30,7 +30,7 @@ le système vérifie, fait relire et exécute à sa place.
 | **Research Analyst** | Claude | **Sonnet 5.5** (briefing, analyses) · **Haiku 5.5** (veille) | Peut mettre le desk **en alerte** : la prochaine ouverture est freinée d'office |
 | **Middle Office** | code + Claude | **Sonnet 5.5** | Rapproche (code) ; écrit le rapport du soir (Claude) |
 | **Audit** | Claude | **Sonnet 5.5** | Écrit les post-mortems et les leçons ; **propose** au CIO, ne change rien |
-| **Prop Trader** | code + Claude | **Sonnet 5.5** (un appel par jour) | Propose des trades sur actions du S&P 500 ; le code les vérifie, le Risk Manager les relit, le système les exécute (amendement 1 de la charte, `docs/desk/pods.md`) |
+| **Prop Trader** | code + Claude | **Opus 5.5** (un appel par jour ; sa relecture sur Sonnet 5.5) | Propose des trades sur actions du S&P 500 ; le code les vérifie, le Risk Manager les relit, le système les exécute (amendement 1 de la charte, `docs/desk/pods.md`) |
 | **Acheteur de volatilité** | code testé | — | Achète un straddle avant les résultats quand les options sous-estiment le mouvement habituel (`src/acheteur/`) |
 
 *Budget du CIO (2026-10-23) : 15 à 20 £ par mois, tout compris. Plafond

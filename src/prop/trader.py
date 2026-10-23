@@ -5,7 +5,7 @@ section 1 et amendement 1).
 
 Le premier jour réel, le Prop Trader cherchait lui-même avec 11 outils, en
 5 à 7 tours sur Opus : 3,72 $ pour deux passages, cinq fois le budget du
-CIO. Désormais :
+CIO. La méthode coûtait, pas le modèle. Désormais :
 
 1. **Le code** retient les titres qui ont réagi fortement à leurs résultats
    (cours ±3 % ou plus, volume 1,5 fois la normale ou plus) les deux derniers
@@ -14,7 +14,7 @@ CIO. Désormais :
    Trader avait choisie seul le premier jour.
 2. **Le code** prépare un dossier chiffré : le marché en bref, le briefing du
    Research Analyst, les positions, et chaque candidat.
-3. **Claude (Sonnet)** le lit en un seul appel et rend son plan.
+3. **Claude (Opus 5.5)** le lit en un seul appel et rend son plan.
 
 Le code note aussi ce que la règle seule aurait fait (logs/prop/regle_seule.csv),
 pour mesurer ce que le jugement de Claude ajoute.
@@ -40,7 +40,7 @@ from src.prop.calendrier import normaliser, prochain_jour_ouvre_apres
 from src.prop.livre import Livre
 
 MEMBRE = "Prop Trader"
-MODELE = sc.SONNET
+MODELE = sc.OPUS               # le seul membre qui décide des trades (choix du CIO)
 EFFORT = "medium"
 TEXTES = ("docs/charte.md", "docs/desk/pods.md")
 

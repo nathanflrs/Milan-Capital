@@ -143,7 +143,7 @@ Ce qui remplace la section 1 là où elle diffère :
 | Qui cherche les idées | Claude, avec 11 outils, en 5 à 7 tours | **Le code** : les titres qui ont réagi fortement à leurs résultats les 2 derniers jours (cours ±3 % ou plus, volume 1,5 fois la normale ou plus), les plus marquants en tête, 6 au plus |
 | Ce que Claude lit | Ce qu'il va chercher | **Un dossier préparé par le code** : le marché en bref, le briefing du Research Analyst, les positions ouvertes, et pour chaque candidat ses indicateurs, ses 10 dernières barres, son agenda et son cours actuel |
 | Appels à Claude | 2 passages, plusieurs tours chacun | **1 appel, à 9 h 45**, avec 2 recherches web au plus |
-| Modèle | Opus 5.5 | **Sonnet 5.5** |
+| Modèle | Opus 5.5 | **Opus 5.5** pour le Prop Trader, seul membre qui décide des trades (choix du CIO, même soir) |
 | Suivi de 12 h 30 | Claude | **Code seul** : rapprochement, résultat du jour, pause à −2 %. Les stops et objectifs sont chez IBKR |
 | Relecture du lot | Risk Manager sur Opus, avec outils | **Risk Manager sur Sonnet, dossier fourni, un appel** |
 
@@ -160,6 +160,16 @@ aucun appel à Claude, pour aucun membre, si la dépense du mois atteint
 un échec : pas d'avis du Risk Manager = pas d'ouverture, pas de plan du Prop
 Trader = pas de trade. Rien ne peut dépasser le budget, même par erreur.
 
+Coûts mesurés le 2026-10-23, sur un passage complet en simulation : Prop
+Trader sur Sonnet 0,075 $, relecture sur Sonnet 0,049 $. Le même passage, aux
+tarifs d'Opus 5.5 (4 $ / 20 $ par million de jetons, contre 5 $ / 25 $ pour
+Opus 5, 4.8, 4.7 et 4.6), vaut ≈ 0,15 $ : c'est la méthode à plusieurs tours,
+pas le modèle, qui coûtait cher. Le CIO garde donc Opus 5.5 pour le Prop
+Trader, Sonnet pour sa relecture.
+
+**Le budget est un maximum, pas une cible : 20 $ par mois, jamais plus.** Une
+notification part sur le téléphone du CIO dès que le mois atteint 15 $.
+
 **Budget prévu par mois** (21 jours de bourse, à vérifier sur la semaine) :
 
 | Membre | Modèle | Prévu |
@@ -169,8 +179,8 @@ Trader = pas de trade. Rien ne peut dépasser le budget, même par erreur.
 | Middle Office, rapport | Sonnet | ≈ 2 $ |
 | Audit | Sonnet | ≈ 2,5 $ |
 | Risk Manager, vendeur (≈ 1 fois par semaine) | Opus | ≈ 1,5 $ |
-| Prop Trader + sa relecture | Sonnet | ≈ 3 à 4 $ |
-| **Total** | | **≈ 17 $ (≈ 13 £)**, plafond 20 $ |
+| Prop Trader (Opus) + sa relecture (Sonnet) | Opus, Sonnet | ≈ 4 à 5 $ |
+| **Total** | | **≈ 16 à 17 $ (≈ 13 £)**, plafond strict 20 $ |
 
 **Mesure de l'avantage de Claude.** Le code note aussi ce que la règle
 seule aurait fait : acheter (ou vendre) chaque candidat au même budget. Au
