@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 228" role="img" aria-label="Milan Capital">
+  <title>Milan Capital</title>
+  <path fill="#13213B" d="M0 0H390V24H388Q382 24 382 30V206Q382 214 390 216V228H326V218Q332 216 332 208V85A55 55 0 0 0 222 85V208Q222 216 228 218V228H162V218Q168 216 168 208V85A55 55 0 0 0 58 85V208Q58 216 64 218V228H0V216Q8 214 8 206V30Q8 24 2 24H0Z"/>
+  <text x="470" y="190" fill="#13213B" font-family="'Source Serif 4', 'Source Serif Pro', Georgia, serif"
+        font-size="168" font-weight="600" letter-spacing="-4">Milan Capital</text>
+</svg>

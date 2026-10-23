@@ -1,0 +1,184 @@
+/*
+ * Système de design de la salle des marchés — charte « Double Arcade ».
+ *
+ * Deux couleurs de marque, et seulement deux : le bleu nuit (fond, texte) et
+ * le bleu vif (accent : actions, chiffres qui comptent, travail en cours).
+ * Trois teintes d'état, désaturées, réservées à un vrai état : perte, alerte,
+ * attention. Les neutres sont froids, accordés au bleu nuit.
+ *
+ * Arrondis (règle unique) : conteneurs 16 px, contrôles 10 px, pastilles
+ * pleines. Les niches des membres reprennent l'arche du logo.
+ */
+@import "tailwindcss";
+@import "@fontsource-variable/source-serif-4/opsz.css";
+@import "@fontsource-variable/source-sans-3";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --nuit: #13213b;
+  --bleu: #2e63e0;
+
+  --page: #f2f4f8;
+  --surface: #fbfcfd;
+  --surface-2: #eceff5;
+  --surface-3: #e2e7f0;
+  --ligne: rgb(19 33 59 / 0.09);
+  --ligne-forte: rgb(19 33 59 / 0.16);
+  --encre: #13213b;
+  --encre-2: #45526b;
+  --encre-3: #6f7a90;
+  --accent: #2e63e0;
+  --accent-encre: #ffffff;
+  --accent-doux: rgb(46 99 224 / 0.09);
+  --perte: #b8453a;
+  --alerte: #b8453a;
+  --attention: #a77b26;
+  --ombre: 0 1px 0 rgb(19 33 59 / 0.04), 0 12px 32px -16px rgb(19 33 59 / 0.18);
+  --nuit-panneau: #13213b;
+  --nuit-panneau-encre: #f3f5fa;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --page: #0a1220;
+  --surface: #0f1a2d;
+  --surface-2: #15223a;
+  --surface-3: #1c2b47;
+  --ligne: rgb(226 232 244 / 0.08);
+  --ligne-forte: rgb(226 232 244 / 0.15);
+  --encre: #e9edf5;
+  --encre-2: #aeb8cb;
+  --encre-3: #7d889e;
+  --accent: #6b93ee;
+  --accent-encre: #0a1220;
+  --accent-doux: rgb(107 147 238 / 0.13);
+  --perte: #e07a6e;
+  --alerte: #e07a6e;
+  --attention: #d4aa5c;
+  --ombre: 0 1px 0 rgb(0 0 0 / 0.25), 0 16px 40px -20px rgb(0 0 0 / 0.6);
+  /* En sombre, le panneau bleu nuit s'éclaircit d'un cran pour se détacher du fond. */
+  --nuit-panneau: #1b2f55;
+  --nuit-panneau-encre: #f3f5fa;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ligne: var(--ligne);
+  --color-ligne-forte: var(--ligne-forte);
+  --color-encre: var(--encre);
+  --color-encre-2: var(--encre-2);
+  --color-encre-3: var(--encre-3);
+  --color-accent: var(--accent);
+  --color-accent-encre: var(--accent-encre);
+  --color-accent-doux: var(--accent-doux);
+  --color-perte: var(--perte);
+  --color-alerte: var(--alerte);
+  --color-attention: var(--attention);
+  --color-nuit: var(--nuit);
+  --font-titre: "Source Serif 4 Variable", "Source Serif 4", Georgia, serif;
+  --font-texte: "Source Sans 3 Variable", "Source Sans 3", system-ui, sans-serif;
+  --radius-conteneur: 16px;
+  --radius-controle: 10px;
+  --shadow-carte: var(--ombre);
+}
+
+html {
+  background: var(--page);
+  color: var(--encre);
+  font-family: var(--font-texte);
+  font-feature-settings: "kern", "liga";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+/* Les chiffres s'alignent en colonne partout. */
+.chiffres {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.titre {
+  font-family: var(--font-titre);
+  font-optical-sizing: auto;
+  letter-spacing: -0.012em;
+}
+
+/* Étiquette en capitales espacées, comme « MILAN CAPITAL / DOUBLE ARCADE ». */
+.etiquette {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--encre-3);
+}
+
+/* La niche en arche : signature de la charte, pour les membres de l'équipe. */
+.arche {
+  border-radius: 999px 999px 8px 8px;
+}
+
+.carte {
+  background: var(--surface);
+  border: 1px solid var(--ligne);
+  border-radius: var(--radius-conteneur);
+  box-shadow: var(--shadow-carte);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Voyant « au travail » : la seule animation perpétuelle de la salle, parce
+   qu'elle dit un vrai état — un membre est en train de travailler. */
+@keyframes respire {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(46 99 224 / 0.45); }
+  50% { box-shadow: 0 0 0 6px rgb(46 99 224 / 0); }
+}
+.voyant-travail {
+  animation: respire 1.8s ease-in-out infinite;
+}
+
+@keyframes reflet {
+  from { background-position: -200% 0; }
+  to { background-position: 200% 0; }
+}
+.squelette {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: reflet 1.6s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voyant-travail, .squelette { animation: none; }
+}
+
+/* Texte des mémos (markdown) */
+.prose-memo { color: var(--encre-2); line-height: 1.65; font-size: 15px; }
+.prose-memo h1, .prose-memo h2, .prose-memo h3 {
+  font-family: var(--font-titre); color: var(--encre); letter-spacing: -0.01em;
+  margin: 1.4em 0 0.5em; line-height: 1.25;
+}
+.prose-memo h1 { font-size: 1.35rem; } .prose-memo h2 { font-size: 1.15rem; } .prose-memo h3 { font-size: 1rem; }
+.prose-memo p { margin: 0.6em 0; }
+.prose-memo strong { color: var(--encre); font-weight: 600; }
+.prose-memo ul, .prose-memo ol { padding-left: 1.2em; margin: 0.6em 0; }
+.prose-memo li { margin: 0.25em 0; }
+.prose-memo table { width: 100%; border-collapse: collapse; margin: 0.9em 0; font-size: 14px;
+  font-variant-numeric: tabular-nums; }
+.prose-memo th { text-align: left; font-weight: 600; color: var(--encre); padding: 6px 10px 6px 0;
+  border-bottom: 1px solid var(--ligne-forte); }
+.prose-memo td { padding: 6px 10px 6px 0; border-bottom: 1px solid var(--ligne); }
+.prose-memo code { font-size: 0.88em; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
+.prose-memo a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }

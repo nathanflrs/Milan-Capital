@@ -188,9 +188,52 @@ async def _execute_local(job_id: str, command: str) -> None:
 app = FastAPI(title="Milan Capital", docs_url=None, redoc_url=None)
 
 
+# ── Salle des marchés (v2) ──────────────────────────────────────────────────
+# L'application React (salle/) est compilée dans salle_dist et servie ici,
+# à l'adresse principale. L'ancien tableau de bord reste consultable à /v1 :
+# la v1 n'est pas effacée.
+SALLE = pathlib.Path(__file__).parent / "salle_dist"
+
+
+def _page_salle() -> HTMLResponse:
+    index = SALLE / "index.html"
+    contenu = index.read_text(encoding="utf-8") if index.exists() else HTML.read_text(encoding="utf-8")
+    # Jamais en cache : une nouvelle version doit apparaître au rechargement.
+    return HTMLResponse(contenu, headers={"Cache-Control": "no-cache"})
+
+
 @app.get("/", response_class=HTMLResponse)
 def root():
+    return _page_salle()
+
+
+# Les écrans de la salle sont des routes de l'application : le serveur rend la
+# même page, et c'est l'application qui affiche le bon écran (liens profonds,
+# notifications, rechargement).
+for _ecran in ("/equipe", "/equipe/{membre}", "/fil", "/rapports", "/protocole"):
+    app.add_api_route(_ecran, root, methods=["GET"], response_class=HTMLResponse,
+                      include_in_schema=False)
+
+
+@app.get("/v1", response_class=HTMLResponse)
+def tableau_v1():
+    """Le tableau de bord de la v1 (l'arène multi-agents), conservé en archive."""
     return HTML.read_text(encoding="utf-8")
+
+
+@app.get("/favicon.svg")
+def favicon():
+    f = SALLE / "favicon.svg"
+    return Response(content=f.read_bytes(), media_type="image/svg+xml") if f.exists() \
+        else Response(status_code=404)
+
+
+if (SALLE / "salle-assets").exists():
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/salle-assets", StaticFiles(directory=SALLE / "salle-assets"), name="salle-assets")
+
+from src.dashboard.salle import creer_routeur as _routeur_salle  # noqa: E402
+app.include_router(_routeur_salle(require_auth))
 
 
 # ── PWA assets ───────────────────────────────────────────────────────────────
@@ -198,16 +241,17 @@ def root():
 def manifest():
     return JSONResponse(content={
         "name": "Milan Capital",
-        "short_name": "MilCap",
-        "description": "Multi-Agent Quantitative Fund — by Nathan Floiras",
+        "short_name": "Milan Capital",
+        "description": "Salle des marchés de Milan Capital",
         "start_url": "/",
+        "scope": "/",
         "display": "standalone",
-        "background_color": "#05080f",
-        "theme_color": "#DEAA3D",
-        "orientation": "portrait-primary",
+        "background_color": "#F2F4F8",
+        "theme_color": "#13213B",
+        "orientation": "any",
         "icons": [
-            {"src": "/icon-192.png?v=3", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-            {"src": "/icon-512.png?v=3", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
+            {"src": "/icon-192.png?v=4", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": "/icon-512.png?v=4", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
         ]
     })
 
@@ -225,49 +269,59 @@ def icon_png(size: int):
 @app.get("/sw.js")
 def service_worker():
     js = """
-const CACHE = 'milan-v1';
-const ASSETS = ['/'];
+// Salle des marchés — service worker (v2).
+// Réseau d'abord pour tout : les données doivent être fraîches, et une
+// nouvelle version de la salle doit apparaître au premier rechargement. Le
+// cache ne sert qu'en secours, hors connexion.
+const CACHE = 'milan-salle-v2';
 
-self.addEventListener('install', e =>
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)))
-);
+self.addEventListener('install', e => self.skipWaiting());
+
+self.addEventListener('activate', e => e.waitUntil(
+  caches.keys()
+    .then(cles => Promise.all(cles.filter(c => c !== CACHE).map(c => caches.delete(c))))
+    .then(() => self.clients.claim())
+));
 
 self.addEventListener('fetch', e => {
-  if (e.request.url.includes('/api/')) return;
+  const url = new URL(e.request.url);
+  if (e.request.method !== 'GET' || url.pathname.startsWith('/api/')) return;
   e.respondWith(
     fetch(e.request)
-      .then(r => { caches.open(CACHE).then(c => c.put(e.request, r.clone())); return r; })
-      .catch(() => caches.match(e.request))
+      .then(r => {
+        if (r.ok) { const copie = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copie)); }
+        return r;
+      })
+      .catch(() => caches.match(e.request).then(r => r || caches.match('/')))
   );
 });
 
 // ── Notifications ────────────────────────────────────────────────────────────
 // Le service worker vit indépendamment de l'onglet : ce gestionnaire s'exécute
-// même dashboard fermé, application quittée, téléphone verrouillé. C'est toute
-// la différence avec une alerte affichée dans la page.
+// même application fermée, téléphone verrouillé.
 self.addEventListener('push', e => {
   let d = { title: 'Milan Capital', body: '', url: '/', tag: 'milan' };
   try { d = { ...d, ...e.data.json() }; } catch (_) {}
   e.waitUntil(self.registration.showNotification(d.title, {
     body: d.body,
-    icon: '/icon-192.png?v=3',
-    badge: '/icon-192.png?v=3',
-    // Un `tag` constant fait remplacer la notification précédente au lieu de
-    // l'empiler : deux runs le même jour ne doivent pas laisser deux lignes
-    // contradictoires dans le centre de notifications.
+    icon: '/icon-192.png?v=4',
+    badge: '/icon-192.png?v=4',
     tag: d.tag,
     renotify: true,
     data: { url: d.url },
   }));
 });
 
+// Un clic ouvre la salle sur le bon écran (le membre concerné) : on réutilise
+// la fenêtre déjà ouverte en la faisant naviguer, sinon on en ouvre une.
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   const url = (e.notification.data && e.notification.data.url) || '/';
-  // Réutilise l'onglet déjà ouvert plutôt que d'en empiler un par notification.
   e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true })
-    .then(list => {
-      for (const c of list) if ('focus' in c) return c.focus();
+    .then(liste => {
+      for (const c of liste) {
+        if ('navigate' in c) return c.navigate(url).then(f => (f || c).focus());
+      }
       return clients.openWindow(url);
     }));
 });
