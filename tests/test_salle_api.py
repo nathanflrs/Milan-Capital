@@ -136,3 +136,19 @@ def test_historique_v1_puis_v2(client):
     assert h["points"][1] == {"jour": "2026-10-21", "valeur": 1031920.0, "epoque": "v2",
                               "resultat_depuis_debut": round(1031920 - 1020836.07, 2)}
     assert h["debut_v2"] == "2026-10-22"
+
+
+def test_les_deux_autres_pods(client):
+    from src.prop import livre as lv
+    livre = lv.Livre(positions=[lv.Position("a", "AAPL", 1, 10, 200.0, 190.0, 220.0, "2026-10-26", 100.0)])
+    livre.trades = [lv.Trade("b", "XOM", -1, 50, 100.0, 96.0, "2026-10-22", "2026-10-23", "objectif", 250.0),
+                    lv.Trade("c", "JPM", 1, 10, 250.0, 240.0, "2026-10-22", "2026-10-23", "stop", 100.0)]
+    lv.sauver(livre, salle.PROP / "livre.json")
+    p = client.get("/api/salle/etat").json()["pods"]
+    assert p["prop"]["positions"][0]["ticker"] == "AAPL" and p["prop"]["nombre_trades"] == 2
+    assert p["prop"]["resultat_realise_usd"] == 100 and p["prop"]["r_cumule"] == pytest.approx(-0.2)
+    assert p["prop"]["taux_reussite_pct"] == 50 and p["prop"]["trades"][0]["ticker"] == "JPM"
+    assert p["acheteur"] == {"mode": "simulation", "straddles": [], "fermes": [], "nombre_fermes": 0,
+                             "resultat_usd": 0, "prime_engagee_usd": 0}
+    eq = {m["titre"]: m for m in client.get("/api/salle/equipe").json()}
+    assert eq["Prop Trader"]["modele"] == "Opus 5.5" and eq["Acheteur de volatilité"]["nature"] == "code"

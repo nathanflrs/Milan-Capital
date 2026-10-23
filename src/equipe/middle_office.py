@@ -33,8 +33,12 @@ outil donne déjà.
 Ton rapport répond, dans cet ordre :
 1. Le fonds : valeur, résultat, positions. Le mode (simulation ou réel) est \
 toujours dit en premier.
-2. Le desk : ce que chaque séance a décidé et fait (ouvertures, fermetures, \
-couvertures, ordres simulés ou réels), et pourquoi.
+2. Le desk, ses trois pods chacun avec son propre résultat (charte, \
+amendement 1) : le vendeur de volatilité (séances, ouvertures, fermetures, \
+couvertures), le prop trader (trades ouverts et fermés, en dollars et en R, \
+freins du Risk Manager, refus du code), l'acheteur de volatilité (straddles \
+achetés, revendus, mouvement prévu contre réel). Ordres simulés ou réels, et \
+pourquoi.
 3. L'équipe : ce qu'a fait chaque membre (briefing, veille, relectures du \
 Risk Manager), avec leurs conclusions, et leur coût.
 4. Le protocole : où en sont les critères F1 à F5 et P1.
@@ -74,6 +78,9 @@ def _outils(jour: date, dossier: Path, chemins: dict) -> List[sc.Outil]:
         sc.Outil("ordres_du_jour", "Ordres du jour (simulés ou réels) : instrument, prix limites, "
                  "statut, remplissage, commission.", {},
                  lambda: jx.ordres(jour, chemin=chemins["ordres"]) or "Aucun ordre."),
+        sc.Outil("les_deux_autres_pods", "Prop trader et acheteur de volatilité : positions, trades "
+                 "fermés (dollars, R), straddles, passages et ordres du jour.", {},
+                 lambda: jx.pods(jour)),
         sc.Outil("registre", "Le registre du desk : barreaux, MES, cycles fermés.", {},
                  lambda: jx.livre(chemins["livre"])),
         sc.Outil("criteres_du_protocole", "État des critères F1-F5 et P1, calculé par le code.", {},

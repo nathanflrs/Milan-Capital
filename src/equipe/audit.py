@@ -195,6 +195,9 @@ def _outils(debut: date, fin: date, dossier: Path, db: Path, complets: bool) -> 
         sc.Outil("seances_et_ordres", "Relevés de séance et ordres sur la période.", {},
                  lambda: {"seances": jx.seances(debut, fin),
                           "ordres": jx.ordres(debut, fin)}),
+        sc.Outil("les_deux_autres_pods", "Prop trader et acheteur de volatilité sur la période : "
+                 "trades (dollars, R), straddles, passages, ordres.", {},
+                 lambda: jx.pods(debut, fin)),
         sc.Outil("couts", "Coût de l'équipe sur la période, par membre.", {},
                  lambda: jx.couts(debut, fin, chemin=dossier / "couts.csv")),
         sc.Outil("calibration_du_research_analyst", "Gravité annoncée contre mouvement réel.", {},

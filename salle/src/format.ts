@@ -52,5 +52,8 @@ export const TACHES: Record<string, string> = {
   briefing: 'Briefing du matin', veille: 'Veille', tri: 'Tri de la veille', analyse: 'Analyse',
   relecture: 'Relecture', rapport: 'Rapport du soir', postmortem: 'Post-mortem', revue: 'Revue de la semaine',
   decision: 'Décision', '10:30': 'Séance de 10 h 30', '15:30': 'Séance de 15 h 30',
+  ouverture: 'Ouverture', suivi: 'Suivi de mi-séance', cloture: 'Clôture des comptes',
+  entree: 'Achats d’avant résultats', sortie: 'Reventes', 'relecture-prop': 'Relecture du prop',
+  'relecture prop': 'Relecture du prop',
 }
 export const nomTache = (t?: string | null) => (t ? TACHES[t] ?? t : '')

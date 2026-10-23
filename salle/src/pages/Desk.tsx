@@ -1,9 +1,10 @@
-/* Le desk : l'état du fonds, la charte, la journée, l'échelle des barreaux. */
+/* Le desk : l'état du fonds, la charte, la journée, les trois pods. */
 import { lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from '@phosphor-icons/react'
 import { useEtat, type Barreau, type Etat } from '../api'
 import { Carte, Chiffre, EnTete, Erreur, Pastille, Squelette, Vide } from '../composants/base'
+import { Pods } from '../composants/pods'
 import { cents, dans, dollars, echeance, heureNY, heureParis, jour, nombre, pct, signe } from '../format'
 
 // Recharts est lourd : les graphiques arrivent après le reste de l'écran.
@@ -107,8 +108,8 @@ export default function Desk() {
   return (
     <>
       <EnTete titre="Le desk"
-        sous={<>{jour(etat.maintenant).replace(/^./, (c) => c.toUpperCase())}. Desk de volatilité sur XSP, couvert en micro-futures MES.</>}
-        action={<Pastille ton={etat.mode === 'reel' ? 'accent' : 'neutre'}>{etat.mode === 'reel' ? 'Réel · paper IBKR' : 'Simulation · rien n’est transmis'}</Pastille>} />
+        sous={<>{jour(etat.maintenant).replace(/^./, (c) => c.toUpperCase())}. Desk hybride : vendeur de volatilité sur XSP, acheteur de straddles, prop trader sur le S&P 500.</>}
+        action={<Pastille ton={etat.mode === 'reel' ? 'accent' : 'neutre'}>{etat.mode === 'reel' ? 'Vendeur : réel · paper IBKR' : 'Vendeur : simulation'}</Pastille>} />
 
       <div className="grid gap-6 lg:grid-cols-[1.7fr_1fr]">
         <Carte className="flex flex-col gap-8 p-6 md:p-8">
@@ -141,10 +142,12 @@ export default function Desk() {
         <Suspense fallback={<Squelette className="h-[380px] w-full" />}><CourbeValeur etat={etat} /></Suspense>
       </div>
 
+      {etat.pods && <Pods pods={etat.pods} />}
+
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.7fr_1fr]">
         <Carte className="p-6 md:p-8">
           <div className="mb-5 flex items-baseline justify-between gap-4">
-            <p className="titre text-[19px] font-semibold">L'échelle des barreaux</p>
+            <p className="titre text-[19px] font-semibold">Vendeur de volatilité : l'échelle des barreaux</p>
             <p className="text-[13px] text-encre-3">Un iron butterfly par semaine, ~30 jours</p>
           </div>
           <Echelle barreaux={etat.barreaux} />

@@ -116,7 +116,7 @@ def _straddle(ib, symbole: str, echeance: str, strike: float):
 def seance(moment: str, jour: Optional[date] = None, livre_chemin: Path = lv.LIVRE) -> int:
     from ib_insync import IB, Stock
 
-    from src.equipe.socle import NEW_YORK, notifier_telephone
+    from src.equipe.socle import NEW_YORK, notifier_telephone, slug
     from src.market.view import load_market_view
     from src.prop import calendrier as cal
     from src.prop import indicateurs as ind
@@ -242,7 +242,7 @@ def seance(moment: str, jour: Optional[date] = None, livre_chemin: Path = lv.LIV
              f"prime engagée {livre.engage_usd():,.0f} $.")
         if lignes:
             notifier_telephone(ROLE, f"{moment.capitalize()} : {'; '.join(lignes)}.",
-                               url="/?membre=acheteur-de-volatilite", tag=f"acheteur-{moment}")
+                               url=f"/?membre={slug(ROLE)}", tag=f"acheteur-{moment}")
         return 0
     except Exception as e:
         dire(f"Séance interrompue : {e}", "critical")

@@ -18,6 +18,31 @@ export interface Barreau {
   ouvert_le: string; credit: number; perte_max_lot: number; jours: number
 }
 
+export interface PositionProp {
+  id: string; ticker: string; sens: number; quantite: number; entree: number; stop: number
+  objectif: number; ouvert_le: string; risque_initial_usd: number; catalyseur: string
+}
+export interface TradeProp {
+  ticker: string; sens: number; quantite: number; entree: number; sortie: number; ouvert_le: string
+  ferme_le: string; motif: string; resultat_usd: number; r: number
+}
+export interface StraddleOuvert {
+  ticker: string; echeance: string; strike: number; lots: number; prime: number; ouvert_le: string
+  reaction_le: string; prevu: number; habituel: number
+}
+export interface StraddleFerme extends Omit<StraddleOuvert, 'reaction_le'> { vente: number; ferme_le: string; realise: number }
+export interface Pods {
+  prop: {
+    mode: string; positions: PositionProp[]; trades: TradeProp[]; nombre_trades: number
+    resultat_realise_usd: number; r_cumule: number; taux_reussite_pct: number | null; en_pause: boolean
+    journees: { jour: string; resultat_du_jour: number }[]
+  }
+  acheteur: {
+    mode: string; straddles: StraddleOuvert[]; fermes: StraddleFerme[]; nombre_fermes: number
+    resultat_usd: number; prime_engagee_usd: number
+  }
+}
+
 export interface Etat {
   maintenant: string
   mode: 'simulation' | 'reel'
@@ -39,6 +64,7 @@ export interface Etat {
   courbe_de_gain: { cours: number; gain_usd: number }[]
   historique: { points: { jour: string; valeur: number; epoque: 'v1' | 'v2'; resultat_depuis_debut: number }[]; debut_v2: string }
   prochaines_taches: Tache[]
+  pods?: Pods
   couts: { periode_usd: number; par_membre_usd: Record<string, number>; mois_en_cours_usd: number; appels: number; echecs: number }
 }
 

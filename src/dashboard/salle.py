@@ -41,6 +41,10 @@ EQUIPE = [
      "mission": "Rapproche le registre et le courtier, écrit le rapport du soir."},
     {"titre": "Audit", "nature": "claude", "modele": "Sonnet 5.5",
      "mission": "Post-mortems, revue du vendredi, leçons proposées au CIO."},
+    {"titre": "Prop Trader", "nature": "claude", "modele": "Opus 5.5",
+     "mission": "Lit le S&P 500 chaque matin et propose ses trades, stop posé chez le courtier."},
+    {"titre": "Acheteur de volatilité", "nature": "code", "modele": None,
+     "mission": "Achète un straddle avant les résultats quand les options sous-estiment le mouvement habituel."},
 ]
 
 # Emploi du temps, heure de New York, du lundi au vendredi (vendredi seul : 4).
@@ -51,6 +55,12 @@ AGENDA = [
     ("Volatility Trader", "séance", [time(10, 30), time(15, 30)], None),
     ("Execution Trader", "couverture", [time(10, 30), time(15, 30)], None),
     ("Risk Manager", "relecture des ouvertures", [time(10, 30), time(15, 30)], None),
+    ("Prop Trader", "ouverture", [time(9, 45)], None),
+    ("Prop Trader", "suivi", [time(12, 30)], None),
+    ("Prop Trader", "clôture des comptes", [time(16, 10)], None),
+    ("Risk Manager", "relecture du prop", [time(9, 45), time(12, 30)], None),
+    ("Acheteur de volatilité", "reventes", [time(10, 30)], None),
+    ("Acheteur de volatilité", "achats", [time(15, 30)], None),
     ("Middle Office", "rapport du soir", [time(16, 30)], None),
     ("Audit", "post-mortem s'il y a lieu", [time(16, 50)], None),
     ("Audit", "revue de la semaine", [time(17, 15)], 4),
@@ -190,8 +200,66 @@ def etat(maintenant: Optional[datetime] = None) -> dict:
         "derniere_seance": derniere,
         "xsp": spot, "courbe_de_gain": courbe_de_gain(livre.get("barreaux", []), spot),
         "prochaines_taches": prochaines_taches(maintenant)[:6],
+        "pods": pods(),
         "historique": histo,
         "couts": jx.couts(aujourd_hui),
+    }
+
+
+# ── Les deux autres pods (docs/desk/pods.md) ────────────────────────────────
+
+PROP = Path("logs/prop")
+ACHETEUR = Path("logs/acheteur")
+
+
+def _json(chemin: Path) -> dict:
+    try:
+        return json.loads(chemin.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def _dernier_mode(chemin: Path) -> str:
+    lignes = jx._csv(chemin)
+    return lignes[-1]["mode"] if lignes else "simulation"
+
+
+def pods(prop: Path = PROP, acheteur: Path = ACHETEUR) -> dict:
+    """Ce que chaque pod détient et ce qu'il a donné, lu dans ses registres."""
+    from src.prop.livre import Trade
+    lp = _json(prop / "livre.json")
+    trades = [Trade(**t) for t in lp.get("trades", [])]
+    journees = jx._csv(prop / "journees.csv")
+    gagnants = [t for t in trades if t.resultat_usd > 0]
+    la = _json(acheteur / "livre.json")
+    fermes = la.get("fermes", [])
+    res_acheteur = [(f["vente"] - f["prime"]) * 100 * f["lots"] for f in fermes]
+    return {
+        "prop": {
+            "mode": _dernier_mode(prop / "seances.csv"),
+            "positions": [{k: p[k] for k in ("id", "ticker", "sens", "quantite", "entree", "stop",
+                                             "objectif", "ouvert_le", "risque_initial_usd", "catalyseur")}
+                          for p in lp.get("positions", [])],
+            "trades": [{"ticker": t.ticker, "sens": t.sens, "quantite": t.quantite, "entree": t.entree,
+                        "sortie": t.sortie, "ouvert_le": t.ouvert_le, "ferme_le": t.ferme_le,
+                        "motif": t.motif, "resultat_usd": round(t.resultat_usd, 2), "r": round(t.r, 2)}
+                       for t in trades[-15:]][::-1],
+            "nombre_trades": len(trades),
+            "resultat_realise_usd": round(sum(t.resultat_usd for t in trades), 2),
+            "r_cumule": round(sum(t.r for t in trades), 2),
+            "taux_reussite_pct": round(len(gagnants) / len(trades) * 100, 0) if trades else None,
+            "en_pause": bool(journees) and lp.get("pause_le") == journees[-1]["jour"],
+            "journees": [{"jour": j["jour"], "resultat_du_jour": float(j["resultat_du_jour"])}
+                         for j in journees[-60:]],
+        },
+        "acheteur": {
+            "mode": _dernier_mode(acheteur / "seances.csv"),
+            "straddles": la.get("straddles", []),
+            "fermes": fermes[-15:][::-1],
+            "nombre_fermes": len(fermes),
+            "resultat_usd": round(sum(res_acheteur), 2),
+            "prime_engagee_usd": round(sum(x["prime"] * 100 * x["lots"] for x in la.get("straddles", [])), 2),
+        },
     }
 
 

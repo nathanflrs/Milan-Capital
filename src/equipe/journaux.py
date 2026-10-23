@@ -83,6 +83,17 @@ def ordres(debut: date, fin: Optional[date] = None, chemin: Path = ORDRES) -> Li
     return [o for o in _csv(chemin) if debut <= _jour_ny(o["horodatage"]) <= fin]
 
 
+def pods(debut: date, fin: Optional[date] = None) -> dict:
+    """Le prop trader et l'acheteur de volatilité : registres, passages, ordres sur la période."""
+    from src.dashboard.salle import pods as etat_des_pods
+    p, a = Path("logs/prop"), Path("logs/acheteur")
+    return {**etat_des_pods(p, a),
+            "passages_prop": seances(debut, fin, p / "seances.csv"),
+            "ordres_prop": ordres(debut, fin, p / "ordres.csv"),
+            "seances_acheteur": seances(debut, fin, a / "seances.csv"),
+            "ordres_acheteur": ordres(debut, fin, a / "ordres.csv")}
+
+
 def couts(debut: date, fin: Optional[date] = None, chemin: Path = COUTS) -> dict:
     """Coûts de l'équipe sur la période, par membre, avec le cumul du mois."""
     fin = fin or debut
