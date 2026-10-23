@@ -96,6 +96,13 @@ install -m 644 "$APP_DIR/deploy/systemd/milan-equipe-veille.timer"   /etc/system
 install -m 644 "$APP_DIR/deploy/systemd/milan-equipe-rapport.timer"  /etc/systemd/system/
 install -m 644 "$APP_DIR/deploy/systemd/milan-equipe-audit.timer"    /etc/systemd/system/
 install -m 644 "$APP_DIR/deploy/systemd/milan-equipe-revue.timer"    /etc/systemd/system/
+install -m 644 "$APP_DIR/deploy/systemd/milan-prop@.service" /etc/systemd/system/
+install -m 644 "$APP_DIR/deploy/systemd/milan-prop-ouverture.timer" /etc/systemd/system/
+install -m 644 "$APP_DIR/deploy/systemd/milan-prop-suivi.timer" /etc/systemd/system/
+install -m 644 "$APP_DIR/deploy/systemd/milan-prop-cloture.timer" /etc/systemd/system/
+install -m 644 "$APP_DIR/deploy/systemd/milan-acheteur@.service" /etc/systemd/system/
+install -m 644 "$APP_DIR/deploy/systemd/milan-acheteur-entree.timer" /etc/systemd/system/
+install -m 644 "$APP_DIR/deploy/systemd/milan-acheteur-sortie.timer" /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable milan-dashboard >/dev/null
 # La collecte nocturne n'importe pas le courtier : aucun ordre ne peut en
@@ -110,6 +117,10 @@ systemctl enable --now milan-desk-1030.timer milan-desk-1530.timer >/dev/null
 # L'équipe Claude lit et écrit des mémos, sans accès au courtier.
 systemctl enable --now milan-equipe-briefing.timer milan-equipe-veille.timer \
   milan-equipe-rapport.timer milan-equipe-audit.timer milan-equipe-revue.timer >/dev/null
+# Les deux autres pods (docs/desk/pods.md) : simulation tant que PROP_ENABLED
+# et ACHETEUR_ENABLED ne sont pas ouverts dans .env.
+systemctl enable --now milan-prop-ouverture.timer milan-prop-suivi.timer milan-prop-cloture.timer \
+  milan-acheteur-entree.timer milan-acheteur-sortie.timer >/dev/null
 ok "dashboard, collecte nocturne et photo des options activés ; le run de trading reste éteint (étape 5)"
 
 log "Caddy — HTTPS automatique"

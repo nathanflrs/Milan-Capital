@@ -276,6 +276,19 @@ tail -5 /opt/milan/logs/desk/ordres.csv         # ordres simulés ou réels
 `EXECUTION_ENABLED=true`. Refermer l'un des deux suffit à le remettre en
 simulation, sans toucher au reste du système.
 
+Les deux autres pods (`docs/desk/pods.md`) suivent le même principe, chacun
+avec son verrou : `PROP_ENABLED` pour le prop trader (9 h 45, 12 h 30,
+clôture des comptes à 16 h 10), `ACHETEUR_ENABLED` pour l'acheteur de
+volatilité (achats 15 h 30, reventes 10 h 30). Refermer le verrou d'un pod le
+remet en simulation sans toucher aux autres. **Attention :** refermer un
+verrou n'annule pas les stops et objectifs déjà posés chez IBKR par le prop
+trader ; ils continuent de protéger ses positions.
+
+```bash
+journalctl -u 'milan-prop@*' -u 'milan-acheteur@*' --since today
+tail -5 /opt/milan/logs/prop/ordres.csv /opt/milan/logs/acheteur/ordres.csv
+```
+
 ---
 
 ## Mettre à jour IB Gateway

@@ -154,3 +154,98 @@ def relire(contexte: dict, stress: callable, jour: date, *, client=None,
     if r.memo.decision == "freiner":
         return False, f"Freiné par le Risk Manager : {r.memo.motif_principal}", r
     return True, f"Approuvé par le Risk Manager : {r.memo.motif_principal}", r
+
+
+# ── Relecture du prop trader (docs/desk/pods.md, section 1) ─────────────────
+
+MANDAT_PROP = """\
+Tu es le Risk Manager du fonds. Le Prop Trader (un membre Claude) propose un \
+lot d'ouvertures sur des actions du S&P 500, à l'achat ou à découvert. Le \
+code a déjà appliqué son budget : 8 positions, 8 % de la VL par position, \
+1 % de risque par trade entre l'entrée et le stop, pause à −2 % sur la \
+séance, limites du fonds. Les quantités sont calculées. Ton travail est ce \
+que le code ne sait pas faire : juger chaque trade dans son contexte.
+
+Ta seule autorité, trade par trade : APPROUVER ou FREINER. Le CIO veut que \
+le pod trade et apprenne ; un frein doit donc reposer sur un fait vérifié et \
+cité, pas sur l'idée qu'un trade pourrait perdre — c'est le rôle du stop. \
+Chacun de tes freins sera rejoué : le trade freiné aurait-il touché son stop \
+ou son objectif ?
+
+Ce que tu examines, au minimum :
+1. Résultats de la société pendant l'horizon annoncé, non assumés dans la thèse.
+2. Concentration : le lot et le livre parient-ils plusieurs fois la même chose \
+(même secteur, même facteur, même sens) ?
+3. Cohérence des niveaux : stop dans le bruit quotidien du titre (comparé à \
+sa volatilité), objectif irréaliste, entrée qui poursuit un titre déjà parti.
+4. Vente à découvert : titre en emballement, nouvelle contraire, dividende \
+détaché pendant la vie du trade (il est dû par le vendeur).
+5. Le marché : alerte du Research Analyst, statistique majeure dans l'heure.
+6. Ton carnet : les leçons validées par le CIO.
+
+Rends une décision pour CHAQUE trade du lot, avec ses vérifications. Un \
+trade du lot sans décision de ta part est freiné."""
+
+
+class DecisionTrade(BaseModel):
+    ticker: str
+    decision: Literal["approuver", "freiner"]
+    motif: str = Field(description="Une ou deux phrases chiffrées.")
+    verifications: List[Verification]
+
+
+class VerdictLot(sc.Memo):
+    decisions: List[DecisionTrade]
+    lecture_du_risque: str = Field(description="Le lot et le livre dans leur ensemble.")
+    confiance: int = Field(ge=1, le=5)
+
+
+def relire_prop(contexte: dict, jour: date, *, client=None, dossier: Path = sc.DOSSIER,
+                publier: bool = True) -> Tuple[dict, str, sc.Resultat]:
+    """({ticker: (autorisé ?, motif)}, message, résultat). Toute défaillance freine tout le lot."""
+    memos = dossier / "memos"
+    tickers = [t["ticker"] for t in contexte["lot"]]
+    if publier:
+        sc.annoncer(MEMBRE, "relecture prop")
+
+    def research() -> list:
+        return [{"heure": m["horodatage"], "memo": m["memo"]}
+                for m in sc.lire_memos(jour.isoformat(), "Research Analyst", memos)
+                if m.get("ok")] or "Aucun mémo du Research Analyst aujourd'hui."
+
+    carnet = dossier / "carnets" / "risk-manager.md"
+    outils = [
+        sc.Outil("lot_propose", "Les trades proposés, quantités calculées par le code, avec la "
+                 "thèse du Prop Trader et les indicateurs de chaque titre.", {},
+                 lambda: contexte["lot"]),
+        sc.Outil("livre_du_pod", "Positions ouvertes du Prop Trader et exposition après le lot "
+                 "(brute, nette, par secteur, risque total aux stops).", {},
+                 lambda: contexte["livre"]),
+        sc.Outil("agenda", "Résultats et ex-dividendes des 5 prochains jours, statistiques du jour.",
+                 {}, lambda: contexte["agenda"]),
+        sc.Outil("memos_du_research_analyst", "Briefing et analyses d'aujourd'hui.", {}, research),
+        sc.Outil("mon_carnet", "Les leçons validées par le CIO pour le Risk Manager.", {},
+                 lambda: carnet.read_text() if carnet.exists() else "Carnet vide pour l'instant."),
+    ]
+    consigne = (f"Séance du {jour.isoformat()}. Le Prop Trader propose {len(tickers)} ouverture(s) : "
+                f"{', '.join(tickers)}. Examine chaque trade avec tes outils, puis rends une décision "
+                f"pour chacun.")
+    r = sc.consulter(MEMBRE, MODELE, MANDAT_PROP, "relecture-prop", consigne, VerdictLot,
+                     outils=outils, effort=EFFORT, client=client, journal=dossier / "couts.csv")
+    sc.sauver_memo(MEMBRE, "relecture-prop", r, memos)
+    if not r.ok:
+        if publier:
+            sc.publier(MEMBRE, "relecture prop", r, notifier=True)
+        return ({t: (False, "pas d'avis valide du Risk Manager") for t in tickers},
+                f"Pas d'avis valide du Risk Manager ({r.erreur}) : aucune ouverture du pod.", r)
+    par_ticker = {d.ticker.upper(): d for d in r.memo.decisions}
+    sortie = {}
+    for t in tickers:
+        d = par_ticker.get(t.upper())
+        sortie[t] = (False, "aucune décision du Risk Manager : freiné") if d is None else \
+            (d.decision == "approuver", d.motif)
+    freines = sum(1 for ok, _ in sortie.values() if not ok)
+    if publier:
+        sc.publier(MEMBRE, "relecture prop", r, notifier=True,
+                   gravite="warning" if freines else "info")
+    return sortie, f"{len(tickers) - freines} approuvé(s), {freines} freiné(s).", r

@@ -1,0 +1,13 @@
+[Unit]
+Description=Milan Capital — suivi du prop trader (12:30, New York)
+
+[Timer]
+# docs/desk/pods.md. Zone explicite : les changements d'heure américains et
+# européens ne tombent pas aux mêmes dates. Pas de Persistent : un passage
+# rattrapé hors marché n'aurait pas de prix.
+OnCalendar=Mon-Fri 12:30 America/New_York
+Unit=milan-prop@suivi.service
+RandomizedDelaySec=20
+
+[Install]
+WantedBy=timers.target

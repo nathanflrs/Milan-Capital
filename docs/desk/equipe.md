@@ -15,7 +15,9 @@ sera **jugé sur pièces** au point d'étape.
 
 Aucun membre Claude ne peut passer un ordre, modifier le registre ou changer
 une règle. Leur pouvoir le plus fort est de **freiner**, et seulement ce qui
-augmente le risque (charte, section 3).
+augmente le risque (charte, section 3). Seule exception, décidée par le CIO le
+2026-10-23 (charte, amendement 1) : le **Prop Trader** décide de trades, que
+le système vérifie, fait relire et exécute à sa place.
 
 ## 2. L'organigramme
 
@@ -28,6 +30,8 @@ augmente le risque (charte, section 3).
 | **Research Analyst** | Claude | **Sonnet 5.5** (briefing, analyses) · **Haiku 5.5** (veille) | Peut mettre le desk **en alerte** : la prochaine ouverture est freinée d'office |
 | **Middle Office** | code + Claude | **Sonnet 5.5** | Rapproche (code) ; écrit le rapport du soir (Claude) |
 | **Audit** | Claude | **Sonnet 5.5** | Écrit les post-mortems et les leçons ; **propose** au CIO, ne change rien |
+| **Prop Trader** | Claude | **Opus 5.5** | Propose des trades sur actions du S&P 500 ; le code les vérifie, le Risk Manager les relit, le système les exécute (amendement 1 de la charte, `docs/desk/pods.md`) |
+| **Acheteur de volatilité** | code testé | — | Achète un straddle avant les résultats quand les options sous-estiment le mouvement habituel (`src/acheteur/`) |
 
 *Mélange de modèles choisi par Nathan le 2026-10-22 pour le coût : le seul
 membre qui a de l'autorité, et qui travaille rarement, a le modèle le plus
@@ -40,6 +44,11 @@ fort. Revu après la première semaine, sur les coûts mesurés.*
 | 8 h 30 | Research Analyst | **Briefing** : agenda du jour, nouvelles de la nuit, courbe du VIX → *météo du jour*, gravité 1 à 5, heures à risque. |
 | 9 h 30 → 16 h, toutes les 30 min | Research Analyst (veille, Haiku) | Trie les nouveaux titres des sources fixées. Rien d'important → silence. Gravité 3 ou plus → analyse par Sonnet → mémo, et **alerte** selon la règle ci-dessous. |
 | 10 h 30 et 15 h 30 | Volatility Trader → **Risk Manager** → Execution Trader | Séance du desk. Le Risk Manager relit chaque ouverture proposée. |
+| 9 h 45 | **Prop Trader** → Risk Manager | **Ouverture** : lecture du marché, trades proposés, relecture du lot, exécution avec stop chez IBKR. |
+| 10 h 30 | Acheteur de volatilité | Revente des straddles dont les résultats sont sortis. |
+| 12 h 30 | **Prop Trader** → Risk Manager | **Suivi** des positions ; ouverture si une place le mérite. |
+| 15 h 30 | Acheteur de volatilité | Achat des straddles d'avant résultats qui passent la règle. |
+| 16 h 10 | Prop Trader (code seul) | **Clôture** : stops touchés dans l'après-midi, résultat du jour du pod. |
 | 16 h 30 | Middle Office | **Rapport du soir.** |
 | 16 h 50 | Audit | **Post-mortem**, seulement s'il s'est passé quelque chose : frein, alerte, membre en échec, incident du desk. Journée calme → aucun appel. |
 | vendredi 17 h 15 | Audit | **Revue de la semaine** + mémo commun de l'équipe au CIO. |
@@ -124,5 +133,7 @@ backtest.
 | Leçons proposées | `logs/equipe/propositions.jsonl` |
 | Calibration du Research Analyst | `logs/equipe/calibration.csv` (calculée par le code) |
 | Relevé de chaque séance | `logs/desk/seances.csv` |
+| Prop trader : registre, ordres, passages, journées | `logs/prop/` (`livre.json`, `ordres.csv`, `seances.csv`, `journees.csv`) |
+| Acheteur : registre, ordres, séances | `logs/acheteur/` |
 | Coût de chaque appel | `logs/equipe/couts.csv` |
 | Événements (salle des marchés, notifications) | bus `logs/events.db`, type `equipe` |

@@ -1,0 +1,13 @@
+[Unit]
+Description=Milan Capital — reventes de l'acheteur de volatilité (10:30, New York)
+
+[Timer]
+# docs/desk/pods.md. Zone explicite : les changements d'heure américains et
+# européens ne tombent pas aux mêmes dates. Pas de Persistent : un passage
+# rattrapé hors marché n'aurait pas de prix.
+OnCalendar=Mon-Fri 10:30 America/New_York
+Unit=milan-acheteur@sortie.service
+RandomizedDelaySec=20
+
+[Install]
+WantedBy=timers.target

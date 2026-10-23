@@ -1,0 +1,23 @@
+[Unit]
+Description=Milan Capital — séance de l'acheteur de volatilité (%i, heure de New York)
+After=network-online.target ibgateway.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=milan
+Group=milan
+WorkingDirectory=/opt/milan
+EnvironmentFile=/opt/milan/.env
+Environment=PYTHONUNBUFFERED=1
+
+# Mode : SIMULATION tant qu'ACHETEUR_ENABLED n'est pas ouvert dans .env, même
+# si EXECUTION_ENABLED l'est (src/acheteur/seance.py). Client API 24.
+ExecStart=/opt/milan/.venv/bin/python -m src.acheteur %i
+TimeoutStartSec=3600
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/milan

@@ -1,0 +1,26 @@
+[Unit]
+Description=Milan Capital — passage du prop trader (%i, heure de New York)
+After=network-online.target ibgateway.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=milan
+Group=milan
+WorkingDirectory=/opt/milan
+EnvironmentFile=/opt/milan/.env
+Environment=PYTHONUNBUFFERED=1
+
+# Mode : SIMULATION tant que PROP_ENABLED n'est pas ouvert dans .env, même si
+# EXECUTION_ENABLED l'est (src/prop/ordres.py, mode_autorise). Client API 23.
+ExecStart=/opt/milan/.venv/bin/python -m src.prop %i
+
+# Le Prop Trader peut chercher longtemps (outils, recherche web), puis chaque
+# entrée attend jusqu'à 3 minutes.
+TimeoutStartSec=3600
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/milan

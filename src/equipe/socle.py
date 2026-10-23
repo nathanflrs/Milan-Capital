@@ -57,7 +57,7 @@ AVEC_REPLI = {OPUS, SONNET}
 BETA_REPLI = "server-side-fallback-2026-07-01"
 
 TEXTES_DE_REFERENCE = ("docs/charte.md", "docs/desk/phase2_observation.md",
-                       "docs/desk/equipe.md")
+                       "docs/desk/equipe.md", "docs/desk/pods.md")
 
 PERSONA = """\
 Tu es membre de l'équipe de Milan Capital, un desk de volatilité systématique \

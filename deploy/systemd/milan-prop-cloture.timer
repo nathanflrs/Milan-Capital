@@ -1,0 +1,13 @@
+[Unit]
+Description=Milan Capital — clôture des comptes du prop trader (16:10, New York)
+
+[Timer]
+# docs/desk/pods.md. Zone explicite : les changements d'heure américains et
+# européens ne tombent pas aux mêmes dates. Pas de Persistent : un passage
+# rattrapé hors marché n'aurait pas de prix.
+OnCalendar=Mon-Fri 16:10 America/New_York
+Unit=milan-prop@cloture.service
+RandomizedDelaySec=20
+
+[Install]
+WantedBy=timers.target

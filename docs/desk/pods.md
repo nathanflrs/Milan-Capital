@@ -20,6 +20,7 @@ sur les actions du S&P 500, à l'achat comme à la vente à découvert.
 |---|---|
 | 9 h 45 | **Ouverture** : il lit le marché, propose ses trades, revoit ses positions. |
 | 12 h 30 | **Suivi** : il revoit ses positions (sortir, déplacer un stop) et peut ouvrir si des places sont libres. |
+| 16 h 10 | **Clôture** (code seul, sans Claude) : enregistre les stops et objectifs exécutés dans l'après-midi et le résultat du jour du pod. |
 
 Les stops et les objectifs sont posés **chez IBKR** à l'entrée : ils protègent
 la position en continu, entre deux passages, même si le serveur tombe.
@@ -54,7 +55,18 @@ le risque de 1 % et de celle que permet la taille demandée par l'agent.
 
 **Relecture.** Le Risk Manager relit le lot de trades proposés à chaque
 passage et peut en freiner une partie. Sans avis valide : aucune ouverture
-(les sorties restent permises).
+(les sorties restent permises). Un trade du lot qu'il ne mentionne pas est
+freiné. Une alerte du Research Analyst ne freine **pas** le pod d'office,
+comme elle le fait pour le vendeur : un jour de choc peut être une occasion
+pour un trader directionnel. Le Risk Manager la voit et en juge.
+
+**Modèle.** Le Prop Trader et sa relecture tournent sur **Opus 5.5** : c'est
+le seul membre qui décide des trades. Coût estimé, à vérifier sur la première
+semaine : 0,5 à 1,5 $ par passage, soit 20 à 60 $ par mois.
+
+**Ajustements.** Sortir est toujours permis. Déplacer le stop l'est tant que
+le risque restant ne dépasse pas 1 % de la valeur liquidative ; l'objectif,
+tant qu'il reste du bon côté du cours.
 
 ### Comment il sera jugé
 
@@ -82,13 +94,14 @@ sous-estiment le mouvement que cette société fait d'habitude ce jour-là**.
 |---|---|
 | Univers | Les 50 plus grandes sociétés du S&P 500 (volume échangé en dollars) |
 | Déclencheur | Résultats publiés après la clôture du jour ou avant l'ouverture du lendemain |
-| Mouvement prévu | Prix du straddle à la monnaie (première échéance après les résultats) ÷ cours |
+| Mouvement prévu | Prix du straddle à la monnaie (milieu de fourchette, première échéance qui expire **après** le jour de réaction) ÷ cours |
 | Mouvement habituel | Moyenne du mouvement absolu de l'action sur ses 8 derniers résultats (clôture avant → clôture après) |
-| Achat | Si le mouvement prévu < **85 %** du mouvement habituel |
+| Achat | Si le mouvement prévu < **85 %** du mouvement habituel (au moins 4 résultats passés pour juger) |
 | Taille | Prime ≤ **0,5 %** de la valeur liquidative par straddle ; **2 %** au total en cours |
 | Entrée | Séance de 15 h 30 (New York), ordre combiné, paliers du milieu au prix affiché |
 | Sortie | Séance de 10 h 30 du lendemain, quoi qu'il arrive |
 | Perte maximale | La prime payée, connue à l'achat |
+| Décision | Code seul, sans Claude ni relecture : la règle est entièrement écrite ici |
 
 **Limite connue, écrite avant :** acheter de la volatilité perd en moyenne (la
 phase 1-bis l'a montré du côté vendeur). La règle ne parie que sur les cas où
