@@ -61,8 +61,11 @@ comme elle le fait pour le vendeur : un jour de choc peut être une occasion
 pour un trader directionnel. Le Risk Manager la voit et en juge.
 
 **Modèle.** Le Prop Trader et sa relecture tournent sur **Opus 5.5** : c'est
-le seul membre qui décide des trades. Coût estimé, à vérifier sur la première
-semaine : 0,5 à 1,5 $ par passage, soit 20 à 60 $ par mois.
+le seul membre qui décide des trades. Coût mesuré à la première répétition
+(2026-10-23) : 1,56 $ pour le Prop Trader (6 tours, 6 recherches web) et
+0,35 $ pour la relecture, soit près de 2 $ par passage avec ouvertures —
+jusqu'à 80 $ par mois à deux passages par jour. Revu après la première
+semaine.
 
 **Ajustements.** Sortir est toujours permis. Déplacer le stop l'est tant que
 le risque restant ne dépasse pas 1 % de la valeur liquidative ; l'objectif,

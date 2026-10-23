@@ -256,6 +256,7 @@ def test_agenda(tmp_path):
     assert a["ex_dividendes"][0]["ticker"] == "XOM"
     assert [e["evenement"] for e in a["economie_du_jour"]] == ["CPI"]
     assert [r["jour"] for r in a["resultats"]] == ["2026-10-23", "2026-10-26"]   # le week-end sauté
+    assert [r["jour"] for r in a["resultats_recents"]] == ["2026-10-21", "2026-10-22"]
     n = len(appels)
     cal.agenda(date(2026, 10, 23), MEMBRES, 1, telecharger=faux_nasdaq(appels), dossier=tmp_path)
     assert len(appels) == n                                         # passé : relu du cache

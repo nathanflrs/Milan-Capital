@@ -197,7 +197,9 @@ class DecisionTrade(BaseModel):
 class VerdictLot(sc.Memo):
     decisions: List[DecisionTrade]
     lecture_du_risque: str = Field(description="Le lot et le livre dans leur ensemble.")
-    confiance: int = Field(ge=1, le=5)
+    # L'échelle doit être écrite : le schéma envoyé à l'API perd les bornes, et
+    # la première relecture réelle (2026-10-23) a rendu une confiance hors de 1-5.
+    confiance: int = Field(ge=1, le=5, description="Entier de 1 (très incertain) à 5 (très sûr).")
 
 
 def relire_prop(contexte: dict, jour: date, *, client=None, dossier: Path = sc.DOSSIER,

@@ -91,7 +91,7 @@ class TradeProp(BaseModel):
     catalyseur: str
     these: str = Field(description="Le raisonnement, chiffres et sources compris.")
     invalidation: str = Field(description="Ce qui prouverait que la thèse est fausse.")
-    conviction: int = Field(ge=1, le=5)
+    conviction: int = Field(ge=1, le=5, description="Entier de 1 (faible) à 5 (très forte).")
 
 
 class Ajustement(BaseModel):
@@ -228,9 +228,10 @@ def outils(ctx: Contexte) -> List[sc.Outil]:
         sc.Outil("cours_actuels", "Derniers cours chez le courtier (15 titres au plus). À appeler "
                  "avant de fixer un prix d'entrée.",
                  {"tickers": {"type": "array", "items": {"type": "string"}}}, cours_actuels),
-        sc.Outil("agenda", "Résultats des sociétés du S&P 500 (avant ouverture / après clôture) et "
-                 "ex-dividendes des 5 prochains jours de bourse, statistiques économiques américaines "
-                 "du jour (Nasdaq).", {}, lambda: ctx.agenda),
+        sc.Outil("agenda", "Résultats des sociétés du S&P 500 publiés les 2 derniers jours de bourse "
+                 "(souvent la cause d'un gap) et à venir sur 5 jours (avant ouverture / après clôture), "
+                 "ex-dividendes à venir, statistiques économiques américaines du jour (Nasdaq).", {},
+                 lambda: ctx.agenda),
         sc.Outil("actualite", "Titres des sources du fonds (Fed, BLS, BEA, Maison-Blanche, SEC, "
                  "MarketWatch, WSJ) depuis N heures (48 au plus).",
                  {"heures": {"type": "integer"}}, actualite),

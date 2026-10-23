@@ -103,6 +103,16 @@ def jours_ouvres(depuis: date, n: int) -> List[date]:
     return sortie
 
 
+def jours_ouvres_passes(avant: date, n: int) -> List[date]:
+    """Les n jours de semaine qui précèdent `avant` (exclu), du plus ancien au plus récent."""
+    sortie, j = [], avant
+    while len(sortie) < n:
+        j -= timedelta(days=1)
+        if j.weekday() < 5:
+            sortie.insert(0, j)
+    return sortie
+
+
 def agenda(aujourd_hui: date, membres: Iterable[str], jours: int = 5, *,
            telecharger=_telecharger, dossier: Path = DOSSIER) -> Dict[str, object]:
     """Ce qui attend le marché : résultats et dividendes des membres, statistiques du jour.
@@ -110,8 +120,14 @@ def agenda(aujourd_hui: date, membres: Iterable[str], jours: int = 5, *,
     Une source en panne est notée, pas fatale.
     """
     membres = list(membres)
-    sortie: Dict[str, object] = {"resultats": [], "ex_dividendes": [], "economie_du_jour": [],
-                                 "erreurs": []}
+    sortie: Dict[str, object] = {"resultats_recents": [], "resultats": [], "ex_dividendes": [],
+                                 "economie_du_jour": [], "erreurs": []}
+    # Les deux derniers jours de bourse : un gap d'hier s'explique souvent par là.
+    for j in jours_ouvres_passes(aujourd_hui, 2):
+        try:
+            sortie["resultats_recents"] += resultats(j, membres, telecharger=telecharger, dossier=dossier)
+        except Exception as e:
+            sortie["erreurs"].append(f"resultats_recents {j}: {str(e)[:100]}")
     for j in jours_ouvres(aujourd_hui, jours):
         for cle, f in (("resultats", resultats), ("ex_dividendes", dividendes)):
             try:
