@@ -168,3 +168,14 @@ de l'armement jusqu'à la fermeture du dixième barreau.
 
 **Rien d'autre ne change** : instrument, structure, ailes, couverture, limites,
 critères.
+
+---
+
+## Amendement 2 — 2026-10-23 : le compte est partagé avec deux autres pods
+
+*Conséquence de l'amendement 1 de la charte (trois pods).* P1 et le résultat
+de chaque barreau se calculent sur **les positions du vendeur seulement**
+(options XSP et MES qu'il a ouvertes), jamais sur la valeur liquidative du
+compte, qui inclut désormais le prop trader et l'acheteur. Les limites de
+baisse (−8 %, −15 %) continuent de se lire sur le compte entier : elles
+protègent le fonds. Rien d'autre ne change.

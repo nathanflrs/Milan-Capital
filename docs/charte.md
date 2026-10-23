@@ -119,3 +119,49 @@ paper IBKR, demandée par Nathan.
 Issues possibles : augmenter la taille, corriger, ou arrêter. Le levier se
 décide ici, jamais avant : il augmente le rendement et le risque, pas le
 Sharpe.
+
+---
+
+## Amendement 1 — 2026-10-23 : trois pods (décision du CIO)
+
+*Décidé par Nathan, CIO, le 2026-10-23 : « c'est un compte de paper trading,
+c'est une expérience, avant tout un projet qui permet d'apprendre ; ça ne veut
+pas dire qu'on doit faire n'importe quoi ». Ajouté sous la charte d'origine,
+qui reste lisible telle qu'elle a été commitée (46a1654).*
+
+Milan Capital devient un **desk hybride** de trois pods, chacun avec son
+budget de risque, son registre et **sa propre mesure de résultat** :
+
+| Pod | Métier | Statut |
+|---|---|---|
+| **Vendeur de volatilité** | Iron butterflies XSP (`docs/desk/phase2_observation.md`) | Simulation jusqu'à l'armement de janvier |
+| **Acheteur de volatilité** | Long straddles avant les résultats des grandes sociétés, quand les options sous-estiment le mouvement habituel | Armé en paper dès sa mise en service |
+| **Prop trader** | Actions du S&P 500, à l'achat et à la vente à découvert, décidées chaque jour par un agent Claude | Armé en paper dès sa mise en service |
+
+Règles détaillées : `docs/desk/pods.md`.
+
+**Ce qui change dans la section 2.** « Pas de décision de trading par un
+modèle de langage » ne vaut plus pour le **seul pod Prop trader**, et
+seulement en paper trading. Les raisons de la règle d'origine restent vraies
+(un LLM ne se teste pas sur le passé, il est convaincant même quand il a tort) ;
+le CIO choisit d'en faire une expérience mesurée **vers l'avenir**, la seule
+mesure honnête d'un LLM. Trois garde-fous ne bougent pas :
+1. **Le système passe l'ordre**, jamais l'agent : ses propositions sont
+   vérifiées par le code (limites ci-dessous), relues par le Risk Manager,
+   exécutées par le code.
+2. **Chaque trade a un stop** posé chez le courtier à l'entrée.
+3. **Les limites du fonds priment** sur celles des pods : à −8 % depuis le plus
+   haut, les tailles de tous les pods sont divisées par deux ; à −15 %, plus
+   aucune ouverture, dans aucun pod.
+
+**Budgets de risque** (choisis par le CIO) :
+
+| Pod | Limites |
+|---|---|
+| Prop trader | 8 positions au plus · 8 % de la valeur liquidative par position · perte maximale 1 % par trade (entrée − stop) · pause du reste de la séance si le pod perd 2 % dans la journée |
+| Acheteur | 0,5 % de la valeur liquidative de prime par straddle · 2 % au total en cours |
+| Vendeur | Inchangé (sections 4 et 5) |
+
+**Mesure.** Le compte étant partagé, le résultat de chaque pod est calculé
+sur ses propres positions et exécutions, jamais sur la valeur du compte
+entier. Le point d'étape juge chaque pod séparément.
