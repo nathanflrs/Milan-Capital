@@ -60,7 +60,7 @@ freiné. Une alerte du Research Analyst ne freine **pas** le pod d'office,
 comme elle le fait pour le vendeur : un jour de choc peut être une occasion
 pour un trader directionnel. Le Risk Manager la voit et en juge.
 
-**Modèle.** Le Prop Trader et sa relecture tournent sur **Opus 5.5** : c'est
+**Modèle** (remplacé par l'amendement 1, plus bas). Le Prop Trader et sa relecture tournaient sur **Opus 5.5** : c'est
 le seul membre qui décide des trades. Coût mesuré à la première répétition
 (2026-10-23) : 1,56 $ pour le Prop Trader (6 tours, 6 recherches web) et
 0,35 $ pour la relecture, soit près de 2 $ par passage avec ouvertures —
@@ -123,3 +123,56 @@ amendement 1).
 
 Verrous : `PROP_ENABLED` et `ACHETEUR_ENABLED` dans `/opt/milan/.env`, en plus
 d'`EXECUTION_ENABLED`. Refermer l'un d'eux remet le pod en simulation.
+
+---
+
+## Amendement 1 — 2026-10-23, soir : le budget du CIO
+
+*Décidé par Nathan après la première journée réelle : 8,18 $ dépensés en un
+jour, dont 3,72 $ pour les deux passages du Prop Trader sur Opus. À ce rythme,
+l'équipe aurait coûté environ 95 $ par mois. Le budget du CIO est de 15 à
+20 £ par mois, **tout compris**.*
+
+**Le principe : le code fait tout ce qu'il sait faire, gratuitement ; Claude
+ne lit que ce qui demande un jugement, en un seul appel court.**
+
+Ce qui remplace la section 1 là où elle diffère :
+
+| | Avant | Maintenant |
+|---|---|---|
+| Qui cherche les idées | Claude, avec 11 outils, en 5 à 7 tours | **Le code** : les titres qui ont réagi fortement à leurs résultats les 2 derniers jours (cours ±3 % ou plus, volume 1,5 fois la normale ou plus), les plus marquants en tête, 6 au plus |
+| Ce que Claude lit | Ce qu'il va chercher | **Un dossier préparé par le code** : le marché en bref, le briefing du Research Analyst, les positions ouvertes, et pour chaque candidat ses indicateurs, ses 10 dernières barres, son agenda et son cours actuel |
+| Appels à Claude | 2 passages, plusieurs tours chacun | **1 appel, à 9 h 45**, avec 2 recherches web au plus |
+| Modèle | Opus 5.5 | **Sonnet 5.5** |
+| Suivi de 12 h 30 | Claude | **Code seul** : rapprochement, résultat du jour, pause à −2 %. Les stops et objectifs sont chez IBKR |
+| Relecture du lot | Risk Manager sur Opus, avec outils | **Risk Manager sur Sonnet, dossier fourni, un appel** |
+
+L'idée de trading ne change pas : c'est celle que le Prop Trader a choisie
+seul le premier jour (LMT), la **dérive après résultats** — une action qui
+réagit fortement à ses résultats a tendance à poursuivre dans le même sens
+quelques séances. Claude juge chaque candidat (le catalyseur est-il solide ?
+le mouvement déjà épuisé ?) au lieu de tout chercher lui-même. Le budget de
+risque (8 positions, 8 %, 1 %, −2 %) et la relecture sont inchangés.
+
+**Le plafond, codé dans le socle de l'équipe** (`src/equipe/socle.py`) :
+aucun appel à Claude, pour aucun membre, si la dépense du mois atteint
+**20 $** (≈ 15,5 £), ou si celle du jour atteint **2 $**. Un appel refusé vaut
+un échec : pas d'avis du Risk Manager = pas d'ouverture, pas de plan du Prop
+Trader = pas de trade. Rien ne peut dépasser le budget, même par erreur.
+
+**Budget prévu par mois** (21 jours de bourse, à vérifier sur la semaine) :
+
+| Membre | Modèle | Prévu |
+|---|---|---|
+| Research Analyst, briefing | Sonnet | ≈ 4,5 $ |
+| Research Analyst, veille (tri) et analyses | Haiku, Sonnet | ≈ 3 $ |
+| Middle Office, rapport | Sonnet | ≈ 2 $ |
+| Audit | Sonnet | ≈ 2,5 $ |
+| Risk Manager, vendeur (≈ 1 fois par semaine) | Opus | ≈ 1,5 $ |
+| Prop Trader + sa relecture | Sonnet | ≈ 3 à 4 $ |
+| **Total** | | **≈ 17 $ (≈ 13 £)**, plafond 20 $ |
+
+**Mesure de l'avantage de Claude.** Le code note aussi ce que la règle
+seule aurait fait : acheter (ou vendre) chaque candidat au même budget. Au
+point d'étape, on saura si le jugement de Claude ajoute quelque chose à la
+règle gratuite. S'il n'ajoute rien, le pod passe en code seul.

@@ -176,3 +176,15 @@ def test_briefing_tardif_le_dit(tmp_path):
     c = FauxClient([reponse([bloc_texte(meteo())])])
     research.briefing(client=c, dossier=tmp_path, publier=False, maintenant=tot, **SOURCES)
     assert "TARDIF" not in c.requetes[0]["messages"][0]["content"]
+
+
+def test_deux_analyses_par_jour_sauf_choc(tmp_path):
+    # Budget du CIO : au-delà de deux analyses Sonnet dans la journée, une
+    # gravité 3 ou 4 n'en déclenche plus ; une gravité 5 passe toujours.
+    for i, (titre, g) in enumerate([("A", 4), ("B", 4), ("C", 4), ("D", 5)]):
+        haiku = FauxClient([reponse([bloc_texte(tri(g, [(titre, g)]))])])
+        sonnet = FauxClient([reponse([bloc_texte(analyse(False))])])
+        b = vl.passage(client=haiku, client_analyse=sonnet, dossier=tmp_path, publier=False,
+                       titres_fn=flux_fixe(titre))
+        assert b["escalade"] == (i != 2) and len(sonnet.requetes) == (0 if i == 2 else 1)
+    assert "budget" in b.get("analyse_reportee", "") or b["escalade"]

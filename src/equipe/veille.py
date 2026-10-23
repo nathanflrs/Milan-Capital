@@ -30,6 +30,9 @@ from src.equipe import sources as so
 MEMBRE = research.MEMBRE
 MODELE_TRI = sc.HAIKU
 SEUIL_ESCALADE = 3
+# Budget du CIO (docs/desk/pods.md, amendement 1) : deux analyses Sonnet par
+# jour au plus ; une gravité 5, un choc, passe toujours.
+ANALYSES_PAR_JOUR = 2
 MAX_TITRES = 40
 FENETRE = timedelta(hours=6)          # premier passage du jour : les 6 dernières heures
 
@@ -118,6 +121,11 @@ def passage(*, client=None, client_analyse=None, dossier: Path = sc.DOSSIER,
     escalade = tri.memo.gravite_max >= SEUIL_ESCALADE
     if publier:
         sc.publier(MEMBRE, "veille", tri, notifier=escalade)
+    deja = len([m for m in sc.lire_memos((jour or datetime.now(sc.NEW_YORK).date()).isoformat(),
+                                         MEMBRE, dossier / "memos") if m["tache"] == "analyse"])
+    if escalade and deja >= ANALYSES_PAR_JOUR and tri.memo.gravite_max < 5:
+        escalade = False
+        bilan["analyse_reportee"] = f"{deja} analyses déjà faites aujourd'hui (budget)"
     if escalade:
         bilan["escalade"] = True
         importants = [t.model_dump() for t in tri.memo.retenus if t.gravite >= SEUIL_ESCALADE]

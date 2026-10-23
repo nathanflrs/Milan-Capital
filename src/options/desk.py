@@ -129,8 +129,11 @@ def seance(moment: str, aujourd_hui: Optional[date] = None,
         if not livre.vl_armement:
             livre.vl_armement = vl
         rap = rg.rapprocher(livre, ib.positions())
-        if rap.hors_desk:
-            dire(dc.MO, f"Lignes hors desk dans le compte : {', '.join(rap.hors_desk)}.", "warning")
+        # Actions (prop trader) et options sur actions (acheteur) appartiennent aux
+        # deux autres pods (docs/desk/pods.md) : seul le reste est anormal.
+        inconnues = [l for l in rap.hors_desk if not l.startswith(("STK ", "OPT "))]
+        if inconnues:
+            dire(dc.MO, f"Lignes inconnues dans le compte : {', '.join(inconnues)}.", "warning")
 
         # Photo propre à la séance : l'échéance cible (25-35 j) ET celles des
         # barreaux ouverts, même sous 7 jours — sinon un barreau dont la

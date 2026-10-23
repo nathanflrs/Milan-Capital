@@ -178,3 +178,47 @@ def test_une_notification_ne_casse_jamais_rien():
     def en_panne(*a, **k):
         raise ConnectionError("Apple injoignable")
     sc.notifier_telephone("x", "y", envoyer=en_panne)       # ne lève pas
+
+
+def test_cache_sur_toute_la_conversation(tmp_path):
+    # Deux tours : le second marque son dernier bloc (les résultats d'outils)
+    # pour le cache, sans toucher à l'historique gardé par la boucle.
+    outil = sc.Outil("lire", "Lit.", {}, lambda: "donnée")
+    c = FauxClient([reponse([NS(type="tool_use", name="lire", input={}, id="t1")], stop="tool_use"),
+                    reponse([bloc_texte(MEMO_OK)])])
+    r = sc.consulter("Risk Manager", sc.SONNET, "mandat", "t", "consigne", Avis, outils=[outil],
+                     client=c, journal=tmp_path / "c.csv", racine=tmp_path)
+    assert r.ok
+    assert isinstance(c.requetes[0]["messages"][0]["content"], str)
+    dernier = c.requetes[1]["messages"][-1]["content"][-1]
+    assert dernier["cache_control"] == {"type": "ephemeral"} and dernier["tool_use_id"] == "t1"
+    assert sum("cache_control" in b for m in c.requetes[1]["messages"] if isinstance(m["content"], list)
+               for b in m["content"] if isinstance(b, dict)) == 1
+
+
+def test_plafond_du_budget(tmp_path):
+    from datetime import datetime, timezone
+    journal = tmp_path / "couts.csv"
+    maintenant = datetime(2026, 10, 23, 18, 0, tzinfo=timezone.utc)
+    journal.write_text("horodatage,membre,tache,modele,tours,entree,sortie,cache_lu,cache_ecrit,"
+                       "recherches_web,cout_usd,statut\n"
+                       "2026-09-30T15:00:00+00:00,X,t,m,1,0,0,0,0,0,50,ok\n"
+                       "2026-10-22T15:00:00+00:00,X,t,m,1,0,0,0,0,0,12.5,ok\n"
+                       "2026-10-23T15:00:00+00:00,X,t,m,1,0,0,0,0,0,1.2,ok\n")
+    assert sc.depense(journal, maintenant) == pytest.approx((13.7, 1.2))
+    assert sc.plafond_atteint(journal, maintenant, {}) is None
+    assert "jour" in sc.plafond_atteint(journal, maintenant, {"EQUIPE_BUDGET_JOUR_USD": "1"})
+    assert "mois" in sc.plafond_atteint(journal, maintenant, {"EQUIPE_BUDGET_MOIS_USD": "13"})
+    # Au-delà du budget, aucun appel ne part, et le refus est journalisé.
+    import os
+    with journal.open("a") as f:
+        f.write(f"{datetime.now(timezone.utc).isoformat()},X,t,m,1,0,0,0,0,0,5,ok\n")
+    os.environ["EQUIPE_BUDGET_MOIS_USD"] = "1"
+    try:
+        c = FauxClient([])
+        r = sc.consulter("Risk Manager", sc.SONNET, "m", "t", "c", Avis, client=c, journal=journal,
+                         racine=tmp_path)
+    finally:
+        del os.environ["EQUIPE_BUDGET_MOIS_USD"]
+    assert not r.ok and "budget" in r.erreur and c.requetes == []
+    assert "budget" in journal.read_text().splitlines()[-1]

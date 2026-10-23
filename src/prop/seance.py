@@ -3,7 +3,7 @@
 Les passages du prop trader (docs/desk/pods.md, section 1).
 
     python -m src.prop ouverture     # 9 h 45 New York : lire, proposer, revoir
-    python -m src.prop suivi         # 12 h 30 : revoir, ouvrir si une place le mérite
+    python -m src.prop suivi         # 12 h 30 : code seul, rapprochement et résultat du jour
     python -m src.prop cloture       # 16 h 10 : tenue des comptes, sans Claude
 
 Un passage, de bout en bout :
@@ -11,7 +11,8 @@ Un passage, de bout en bout :
        objectifs exécutés depuis le dernier passage sont fermés au prix réel ;
        un écart inexpliqué arrête le pod ;
     2. résultat du pod dans la séance → pause à −2 % ; limites du fonds ;
-    3. (ouverture, suivi) le Prop Trader rend son plan ;
+    3. (ouverture) le code présélectionne les titres qui ont réagi à leurs
+       résultats et prépare le dossier ; le Prop Trader le juge en un appel ;
     4. ajustements des positions : sorties, stops, objectifs ;
     5. ouvertures : budget du code, puis relecture du Risk Manager, puis
        entrée et protection chez IBKR ;
@@ -181,14 +182,33 @@ def passage(moment: str, jour: Optional[date] = None, livre_chemin: Path = lv.LI
             dire(f"Clôture : {len(livre.positions)} position(s), résultat du jour "
                  f"{resultat_jour:+,.0f} $, {len(rap.fermes)} sortie(s) chez le courtier.")
             return 0
+        if moment == "suivi":
+            # Code seul (amendement 1 de pods.md) : les stops et objectifs
+            # travaillent chez IBKR ; Claude ne repasse que le lendemain.
+            sauver()
+            _noter_passage(jour, moment, mode, vl, resume)
+            dire(f"Suivi : {len(livre.positions)} position(s), résultat du jour {resultat_jour:+,.0f} $. "
+                 f"{motif}")
+            return 0
 
-        # 3. Le plan du Prop Trader.
+        # 3. Le code présélectionne et prépare le dossier ; Claude juge en un appel.
         agenda = cal.agenda(jour, membres)
         table = ind.ecran(vue.ohlcv, vue.members)
+        ce_matin = [t for t in tr.a_coter_ce_matin(agenda, jour) if t in vue.ohlcv][:15]
+        cours = {**cours_pos, **od.cours(ib, ce_matin)}
+        candidats = tr.preselection(agenda, vue.ohlcv, jour, cours,
+                                    tenus=[p.ticker for p in livre.positions])
+        cours.update(od.cours(ib, [c["ticker"] for c in candidats if c["ticker"] not in cours]))
+        if not candidats and not livre.positions:
+            sauver()
+            _noter_passage(jour, moment, mode, vl, resume)
+            dire("Ouverture : aucun titre n'a réagi assez fort à ses résultats, aucune position. "
+                 "Pas d'appel à Claude aujourd'hui.")
+            return 0
         ctx = tr.Contexte(jour=jour, moment=moment, table=table, ohlcv=vue.ohlcv,
                           membres=vue.members, agenda=agenda, livre=livre, vl=vl,
                           plus_haut=plus_haut, perte_du_jour=resultat_jour,
-                          ouvertures=(permises, motif), cours=lambda ts: od.cours(ib, ts),
+                          ouvertures=(permises, motif), cours=cours, candidats=candidats,
                           as_of=vue.as_of.isoformat())
         r = tr.proposer(ctx)
         resume["cout"] += r.cout
@@ -199,6 +219,7 @@ def passage(moment: str, jour: Optional[date] = None, livre_chemin: Path = lv.LI
             return 1
         plan = r.memo
         lignes: List[str] = []
+        tr.noter_regle_seule(jour, candidats, cours, [d.ticker for d in tr.demandes(plan)])
 
         # 4. Ajustements : ils réduisent le risque ou le bornent, sans relecture.
         for a in plan.ajustements:

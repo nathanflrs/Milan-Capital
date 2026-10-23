@@ -93,6 +93,14 @@ def economie(jour: date, *, telecharger=_telecharger, dossier: Path = DOSSIER) -
             if l.get("country") == "United States"]
 
 
+def prochain_jour_ouvre_apres(j: date) -> date:
+    """Le jour de semaine qui suit `j` (fériés non retirés)."""
+    j += timedelta(days=1)
+    while j.weekday() >= 5:
+        j += timedelta(days=1)
+    return j
+
+
 def jours_ouvres(depuis: date, n: int) -> List[date]:
     """Les n prochains jours de semaine à partir de `depuis` inclus (fériés non retirés)."""
     sortie, j = [], depuis

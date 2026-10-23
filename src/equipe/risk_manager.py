@@ -202,38 +202,40 @@ class VerdictLot(sc.Memo):
     confiance: int = Field(ge=1, le=5, description="Entier de 1 (très incertain) à 5 (très sûr).")
 
 
+MODELE_PROP = sc.SONNET          # budget du CIO (docs/desk/pods.md, amendement 1)
+TEXTES_PROP = ("docs/charte.md", "docs/desk/pods.md")
+
+
 def relire_prop(contexte: dict, jour: date, *, client=None, dossier: Path = sc.DOSSIER,
                 publier: bool = True) -> Tuple[dict, str, sc.Resultat]:
-    """({ticker: (autorisé ?, motif)}, message, résultat). Toute défaillance freine tout le lot."""
+    """({ticker: (autorisé ?, motif)}, message, résultat). Toute défaillance freine tout le lot.
+
+    Un seul appel, sans outils : le dossier (lot, livre, agenda des titres du
+    lot, mémos du jour, carnet) est fourni d'emblée.
+    """
     memos = dossier / "memos"
     tickers = [t["ticker"] for t in contexte["lot"]]
     if publier:
         sc.annoncer(MEMBRE, "relecture prop")
-
-    def research() -> list:
-        return [{"heure": m["horodatage"], "memo": m["memo"]}
-                for m in sc.lire_memos(jour.isoformat(), "Research Analyst", memos)
-                if m.get("ok")] or "Aucun mémo du Research Analyst aujourd'hui."
-
     carnet = dossier / "carnets" / "risk-manager.md"
-    outils = [
-        sc.Outil("lot_propose", "Les trades proposés, quantités calculées par le code, avec la "
-                 "thèse du Prop Trader et les indicateurs de chaque titre.", {},
-                 lambda: contexte["lot"]),
-        sc.Outil("livre_du_pod", "Positions ouvertes du Prop Trader et exposition après le lot "
-                 "(brute, nette, par secteur, risque total aux stops).", {},
-                 lambda: contexte["livre"]),
-        sc.Outil("agenda", "Résultats et ex-dividendes des 5 prochains jours, statistiques du jour.",
-                 {}, lambda: contexte["agenda"]),
-        sc.Outil("memos_du_research_analyst", "Briefing et analyses d'aujourd'hui.", {}, research),
-        sc.Outil("mon_carnet", "Les leçons validées par le CIO pour le Risk Manager.", {},
-                 lambda: carnet.read_text() if carnet.exists() else "Carnet vide pour l'instant."),
-    ]
+    agenda = contexte.get("agenda") or {}
+    pieces = {
+        "lot_propose": contexte["lot"],
+        "livre_du_pod": contexte["livre"],
+        "agenda_des_titres_du_lot": {k: [x for x in v if isinstance(x, dict) and x.get("ticker") in tickers]
+                                     for k, v in agenda.items() if isinstance(v, list)},
+        "statistiques_du_jour": agenda.get("economie_du_jour", []),
+        "research_analyst": [{k: m["memo"].get(k) for k in ("recap_court", "gravite", "alerte")}
+                             for m in sc.lire_memos(jour.isoformat(), "Research Analyst", memos)
+                             if m.get("ok") and m.get("memo")][-2:],
+        "mon_carnet": carnet.read_text() if carnet.exists() else "Carnet vide.",
+    }
     consigne = (f"Séance du {jour.isoformat()}. Le Prop Trader propose {len(tickers)} ouverture(s) : "
-                f"{', '.join(tickers)}. Examine chaque trade avec tes outils, puis rends une décision "
-                f"pour chacun.")
-    r = sc.consulter(MEMBRE, MODELE, MANDAT_PROP, "relecture-prop", consigne, VerdictLot,
-                     outils=outils, effort=EFFORT, client=client, journal=dossier / "couts.csv")
+                f"{', '.join(tickers)}. Examine chaque trade avec le dossier, puis rends une décision "
+                f"pour chacun.\n\n<dossier>\n{json.dumps(pieces, ensure_ascii=False, default=str)}\n</dossier>")
+    r = sc.consulter(MEMBRE, MODELE_PROP, MANDAT_PROP, "relecture-prop", consigne, VerdictLot,
+                     effort="medium", max_tours=2, client=client, journal=dossier / "couts.csv",
+                     textes=TEXTES_PROP)
     sc.sauver_memo(MEMBRE, "relecture-prop", r, memos)
     if not r.ok:
         if publier:

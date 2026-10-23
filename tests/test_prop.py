@@ -12,7 +12,8 @@ Ce qui est verrouillé ici :
   le courtier, et s'arrête sur un écart inexpliqué ;
 - le résultat du jour se calcule depuis la clôture d'hier (ou l'entrée du jour) ;
 - l'agenda lit Nasdaq une fois par jour, garde le passé en cache, ne garde que le S&P 500 ;
-- le plan de Claude passe par ses outils et devient des demandes normalisées ;
+- le code présélectionne les réactions aux résultats ; Claude juge le dossier en un seul
+  appel Sonnet, avec ses seules règles en contexte ; la règle seule est notée à côté ;
 - la relecture du Risk Manager freine ce qu'elle ne mentionne pas, et tout le lot en cas de panne ;
 - rien ne part sans PROP_ENABLED et EXECUTION_ENABLED.
 """
@@ -268,16 +269,24 @@ def test_agenda(tmp_path):
 
 # ── Le Prop Trader (faux client Claude) ─────────────────────────────────────
 
-def contexte(tmp_path, livre=None):
+def reagit(df, jour, saut, volume):
+    """Fait réagir la série `df` le `jour` donné : saut de cours et volume multiplié."""
+    df = df.copy()
+    i = df.index.get_loc(pd.Timestamp(jour))
+    df.iloc[i:, :4] = df.iloc[i:, :4] * (1 + saut)
+    df.iloc[i, 4] = df.iloc[i, 4] * volume
+    return df
+
+
+def contexte(tmp_path, livre=None, candidats=()):
     ohlcv = {t: barres(depart=COURS[t] / np.exp(0.002 * 260), graine=i) for i, t in enumerate(MEMBRES)}
     membres = pd.DataFrame({"sector": ["IT", "Energy", "Financials", "IT", "Financials"],
                             "sub_industry": ["a", "b", "c", "a", "c"]}, index=MEMBRES)
     return tr.Contexte(jour=JOUR, moment="ouverture", table=ind.ecran(ohlcv, membres), ohlcv=ohlcv,
                        membres=membres, agenda={"resultats": [], "ex_dividendes": []},
                        livre=livre or lv.Livre(), vl=VL, plus_haut=VL, perte_du_jour=0.0,
-                       ouvertures=(True, "Ouvertures permises."),
-                       cours=lambda ts: {t: COURS[t] for t in ts if t in COURS},
-                       titres=lambda depuis: [], dossier=tmp_path, as_of="2026-10-23")
+                       ouvertures=(True, "Ouvertures permises."), cours=dict(COURS),
+                       candidats=list(candidats), dossier=tmp_path, as_of="2026-10-23")
 
 
 def plan(**kw):
@@ -290,30 +299,55 @@ def plan(**kw):
     return json.dumps(base)
 
 
-def appel_outil(nom, entree, id_="o1"):
-    return NS(type="tool_use", name=nom, input=entree, id=id_)
+def test_preselection_des_reactions_aux_resultats():
+    ohlcv = {t: barres(graine=i) for i, t in enumerate(["LMT", "CSX", "PEU", "MATIN"])}
+    ohlcv["LMT"] = reagit(ohlcv["LMT"], "2026-10-22", 0.07, 2.5)     # publié le 21 au soir
+    ohlcv["CSX"] = reagit(ohlcv["CSX"], "2026-10-23", -0.05, 3.0)    # publié le 23 au matin
+    ohlcv["PEU"] = reagit(ohlcv["PEU"], "2026-10-22", 0.02, 4.0)     # trop faible
+    agenda = {"resultats_recents": [
+        {"ticker": "LMT", "jour": "2026-10-21", "moment": "apres_cloture", "societe": "Lockheed"},
+        {"ticker": "CSX", "jour": "2026-10-23", "moment": "avant_ouverture"},
+        {"ticker": "PEU", "jour": "2026-10-22", "moment": "avant_ouverture"}],
+        "resultats": [{"ticker": "MATIN", "jour": "2026-10-26", "moment": "avant_ouverture"},
+                      {"ticker": "LMT", "jour": "2026-10-26", "moment": "apres_cloture"}]}
+    veille = float(ohlcv["MATIN"]["Close"].iloc[-1])
+    c = tr.preselection(agenda, ohlcv, JOUR, {"MATIN": veille * 1.04})
+    assert [x["ticker"] for x in c] == ["LMT", "CSX", "MATIN"]           # 7 % × 2,5 avant 5 % × 3
+    assert c[0]["reaction"]["jour"] == "2026-10-22" and c[0]["reaction"]["rendement_pct"] > 6
+    assert c[2]["reaction"]["volume_relatif"] is None                    # écart du matin
+    assert [x["ticker"] for x in tr.preselection(agenda, ohlcv, JOUR, {}, tenus=["CSX"])] == ["LMT"]
+    # La règle seule : suivre la réaction, stop à l'extrême du jour, 2 R.
+    r = tr.regle_seule(c[1], 90.0)
+    assert r["sens"] == -1 and r["stop"] == c[1]["reaction"]["plus_haut"]
+    assert r["objectif"] == pytest.approx(90 - 2 * (r["stop"] - 90), abs=0.01)
 
 
-def test_le_plan_passe_par_les_outils(tmp_path):
-    ctx = contexte(tmp_path)
-    client = FauxClient([
-        reponse([appel_outil("ecran", {"critere": "r20_pct", "ordre": "decroissant", "n": 3, "secteur": ""}),
-                 appel_outil("cours_actuels", {"tickers": ["BRK.B", "SPY"]}, "o2"),
-                 appel_outil("fiche", {"ticker": "BRK-B"}, "o3")], stop="tool_use"),
-        reponse([bloc_texte(plan())]),
-    ])
+def test_un_seul_appel_sur_un_dossier(tmp_path):
+    cand = {"ticker": "BRK-B", "societe": "Berkshire", "publication": "2026-10-23",
+            "moment": "avant_ouverture", "bpa_attendu": "$5.1",
+            "reaction": {"jour": "2026-10-23", "rendement_pct": 4.2, "volume_relatif": 2.1,
+                         "plus_haut": 482.0, "plus_bas": 466.0}}
+    ctx = contexte(tmp_path, livre=lv.Livre(positions=[position("XOM", id_="p1", entree=95.0, stop=90.0)]),
+                   candidats=[cand])
+    client = FauxClient([reponse([bloc_texte(plan(ajustements=[
+        {"id_position": "p1", "action": "garder", "nouveau_prix": 0, "raison": "…"}]))])])
     r = tr.proposer(ctx, client=client, publier=False)
-    assert r.ok
-    resultats = {b["tool_use_id"]: b for b in client.requetes[1]["messages"][-2]["content"]}
-    assert len(json.loads(resultats["o1"]["content"])) == 3
-    cours = json.loads(resultats["o2"]["content"])
-    assert cours["cours"] == {"BRK-B": 480.0} and cours["hors_s&p500"] == ["SPY"]
-    assert json.loads(resultats["o3"]["content"])["sous_industrie"] == "c"
-    (d,) = tr.demandes(r.memo)
-    assert d.ticker == "BRK-B" and d.sens == 1
-    assert client.requetes[0]["model"] == tr.MODELE
-    assert 'chemin="docs/desk/pods.md"' in client.requetes[0]["system"][1]["text"]        # ses règles dans son contexte
+    assert r.ok and len(client.requetes) == 1
+    q = client.requetes[0]
+    assert q["model"] == tr.MODELE == "claude-sonnet-5-5"
+    assert [t["type"] for t in q["tools"]] == ["web_search_20260209"] and q["tools"][0]["max_uses"] == 2
+    texte = q["messages"][0]["content"]
+    d = json.loads(texte.split("<dossier>\n")[1].split("\n</dossier>")[0])
+    assert d["candidats"][0]["ticker"] == "BRK-B" and d["candidats"][0]["cours_actuel"] == 480.0
+    assert d["positions"][0]["resultat_r"] == pytest.approx(1.0)        # XOM 100 contre entrée 95, stop 90
+    assert d["budget"]["places_libres"] == 7
+    systeme = q["system"][1]["text"]
+    assert 'chemin="docs/desk/pods.md"' in systeme and 'chemin="docs/desk/phase2_observation.md"' not in systeme
+    (dm,) = tr.demandes(r.memo)
+    assert dm.ticker == "BRK-B" and dm.sens == 1
     assert list((tmp_path / "memos").glob("*/prop-trader-ouverture-*.json"))
+    tr.noter_regle_seule(JOUR, [cand], {"BRK-B": 480.0}, ["BRK-B"], tmp_path / "r.csv")
+    assert (tmp_path / "r.csv").read_text().splitlines()[1].endswith(",True")
 
 
 def test_plan_invalide_rien(tmp_path):

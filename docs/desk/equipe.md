@@ -30,8 +30,12 @@ le système vérifie, fait relire et exécute à sa place.
 | **Research Analyst** | Claude | **Sonnet 5.5** (briefing, analyses) · **Haiku 5.5** (veille) | Peut mettre le desk **en alerte** : la prochaine ouverture est freinée d'office |
 | **Middle Office** | code + Claude | **Sonnet 5.5** | Rapproche (code) ; écrit le rapport du soir (Claude) |
 | **Audit** | Claude | **Sonnet 5.5** | Écrit les post-mortems et les leçons ; **propose** au CIO, ne change rien |
-| **Prop Trader** | Claude | **Opus 5.5** | Propose des trades sur actions du S&P 500 ; le code les vérifie, le Risk Manager les relit, le système les exécute (amendement 1 de la charte, `docs/desk/pods.md`) |
+| **Prop Trader** | code + Claude | **Sonnet 5.5** (un appel par jour) | Propose des trades sur actions du S&P 500 ; le code les vérifie, le Risk Manager les relit, le système les exécute (amendement 1 de la charte, `docs/desk/pods.md`) |
 | **Acheteur de volatilité** | code testé | — | Achète un straddle avant les résultats quand les options sous-estiment le mouvement habituel (`src/acheteur/`) |
+
+*Budget du CIO (2026-10-23) : 15 à 20 £ par mois, tout compris. Plafond
+codé dans `src/equipe/socle.py` : 20 $ par mois, 2 $ par jour ; au-delà,
+aucun appel à Claude (détail : `docs/desk/pods.md`, amendement 1).*
 
 *Mélange de modèles choisi par Nathan le 2026-10-22 pour le coût : le seul
 membre qui a de l'autorité, et qui travaille rarement, a le modèle le plus
@@ -44,9 +48,9 @@ fort. Revu après la première semaine, sur les coûts mesurés.*
 | 8 h 30 | Research Analyst | **Briefing** : agenda du jour, nouvelles de la nuit, courbe du VIX → *météo du jour*, gravité 1 à 5, heures à risque. |
 | 9 h 30 → 16 h, toutes les 30 min | Research Analyst (veille, Haiku) | Trie les nouveaux titres des sources fixées. Rien d'important → silence. Gravité 3 ou plus → analyse par Sonnet → mémo, et **alerte** selon la règle ci-dessous. |
 | 10 h 30 et 15 h 30 | Volatility Trader → **Risk Manager** → Execution Trader | Séance du desk. Le Risk Manager relit chaque ouverture proposée. |
-| 9 h 45 | **Prop Trader** → Risk Manager | **Ouverture** : lecture du marché, trades proposés, relecture du lot, exécution avec stop chez IBKR. |
+| 9 h 45 | **Prop Trader** → Risk Manager | **Ouverture** : le code présélectionne, Claude juge le dossier en un appel, relecture du lot, exécution avec stop chez IBKR. |
 | 10 h 30 | Acheteur de volatilité | Revente des straddles dont les résultats sont sortis. |
-| 12 h 30 | **Prop Trader** → Risk Manager | **Suivi** des positions ; ouverture si une place le mérite. |
+| 12 h 30 | Prop Trader (code seul) | **Suivi** : rapprochement, résultat du jour, pause à −2 %. |
 | 15 h 30 | Acheteur de volatilité | Achat des straddles d'avant résultats qui passent la règle. |
 | 16 h 10 | Prop Trader (code seul) | **Clôture** : stops touchés dans l'après-midi, résultat du jour du pod. |
 | 16 h 30 | Middle Office | **Rapport du soir.** |

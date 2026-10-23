@@ -13,8 +13,13 @@ pour qu'aucun membre ne puisse y échapper :
 - **Sortie structurée.** Chaque mémo suit un schéma Pydantic, imposé par
   l'API (output_config.format) puis revalidé ici. Un mémo invalide vaut
   `None` — jamais un accord.
-- **Coût mesuré.** Chaque appel est chiffré et écrit dans
-  logs/equipe/couts.csv.
+- **Coût mesuré, et plafonné.** Chaque appel est chiffré et écrit dans
+  logs/equipe/couts.csv. Aucun appel ne part si la dépense du mois ou du
+  jour a atteint le budget du CIO.
+- **Cache sur toute la conversation.** Le dernier message de chaque tour est
+  marqué pour le cache : un membre qui enchaîne les outils ne repaie pas,
+  plein tarif, tout ce qu'il a déjà lu (premier jour réel : 359 000 jetons
+  payés plein tarif en un passage).
 - **Publication.** Chaque tâche terminée publie un récap court (notification)
   et un récap détaillé (salle des marchés) sur le bus, type « equipe ».
 
@@ -58,6 +63,12 @@ BETA_REPLI = "server-side-fallback-2026-07-01"
 
 TEXTES_DE_REFERENCE = ("docs/charte.md", "docs/desk/phase2_observation.md",
                        "docs/desk/equipe.md", "docs/desk/pods.md")
+
+# Le budget du CIO : 15 à 20 £ par mois, tout compris (docs/desk/pods.md,
+# amendement 1). Au-delà, aucun appel : un appel refusé vaut un échec, donc
+# jamais un accord.
+BUDGET_MOIS_USD = 20.0
+BUDGET_JOUR_USD = 2.0
 
 PERSONA = """\
 Tu es membre de l'équipe de Milan Capital, un desk de volatilité systématique \
@@ -157,9 +168,9 @@ class Resultat:
         return self.memo is not None
 
 
-def texte_de_reference(racine: Path = RACINE) -> str:
+def texte_de_reference(racine: Path = RACINE, textes: Sequence[str] = TEXTES_DE_REFERENCE) -> str:
     morceaux = []
-    for chemin in TEXTES_DE_REFERENCE:
+    for chemin in textes:
         f = racine / chemin
         if f.exists():
             morceaux.append(f"<texte_de_reference chemin=\"{chemin}\">\n"
@@ -179,6 +190,63 @@ def _cout(modele: str, usage) -> Tuple[float, Dict[str, int]]:
         + recherches * PRIX_RECHERCHE_WEB
     return dollars, {"entree": entree, "sortie": sortie, "cache_lu": lu,
                      "cache_ecrit": ecrit, "recherches_web": recherches}
+
+
+def depense(chemin: Path = COUTS, maintenant: Optional[datetime] = None) -> Tuple[float, float]:
+    """(dépense du mois, dépense du jour), en dollars, d'après le journal des coûts.
+
+    Le jour est celui de New York, le mois celui du calendrier.
+    """
+    maintenant = (maintenant or datetime.now(timezone.utc)).astimezone(NEW_YORK)
+    mois, jour = 0.0, 0.0
+    if not chemin.exists():
+        return mois, jour
+    with chemin.open(newline="") as f:
+        for l in csv.DictReader(f):
+            try:
+                quand = datetime.fromisoformat(l["horodatage"]).astimezone(NEW_YORK)
+                cout = float(l["cout_usd"] or 0)
+            except (KeyError, ValueError):
+                continue
+            if (quand.year, quand.month) == (maintenant.year, maintenant.month):
+                mois += cout
+                if quand.date() == maintenant.date():
+                    jour += cout
+    return mois, jour
+
+
+def plafond_atteint(chemin: Path = COUTS, maintenant: Optional[datetime] = None,
+                    env=None) -> Optional[str]:
+    """La raison du refus si le budget du mois ou du jour est atteint, sinon None."""
+    import os
+    env = os.environ if env is None else env
+    par_mois = float(env.get("EQUIPE_BUDGET_MOIS_USD", BUDGET_MOIS_USD))
+    par_jour = float(env.get("EQUIPE_BUDGET_JOUR_USD", BUDGET_JOUR_USD))
+    mois, jour = depense(chemin, maintenant)
+    if mois >= par_mois:
+        return f"budget du mois atteint ({mois:.2f} $ sur {par_mois:.0f} $)"
+    if jour >= par_jour:
+        return f"budget du jour atteint ({jour:.2f} $ sur {par_jour:.0f} $)"
+    return None
+
+
+def _avec_cache(messages: List[dict]) -> List[dict]:
+    """Les messages, le dernier bloc du dernier message marqué pour le cache.
+
+    Copie superficielle : l'historique gardé par la boucle n'est pas modifié,
+    la marque ne s'accumule donc pas (l'API en accepte 4 au plus).
+    """
+    # Au premier tour, le préfixe système est déjà en cache : rien à marquer.
+    if len(messages) < 2:
+        return messages
+    dernier = dict(messages[-1])
+    contenu = dernier["content"]
+    marque = {"cache_control": {"type": "ephemeral"}}
+    if isinstance(contenu, str):
+        dernier["content"] = [{"type": "text", "text": contenu, **marque}]
+    elif contenu and isinstance(contenu[-1], dict):
+        dernier["content"] = list(contenu[:-1]) + [{**contenu[-1], **marque}]
+    return messages[:-1] + [dernier]
 
 
 def _noter_cout(membre: str, tache: str, modele: str, r: Resultat,
@@ -202,14 +270,19 @@ def consulter(membre: str, modele: str, mandat: str, tache: str, consigne: str,
               format_memo: Type[BaseModel], outils: Sequence[Outil] = (),
               outils_serveur: Sequence[dict] = (), effort: str = "medium",
               max_tours: int = 12, client=None, journal: Optional[Path] = COUTS,
-              racine: Path = RACINE) -> Resultat:
+              racine: Path = RACINE, textes: Sequence[str] = TEXTES_DE_REFERENCE) -> Resultat:
     """Confie une tâche à un membre et rend son mémo validé, ou None et la raison."""
+    refus = plafond_atteint(journal) if journal else None
+    if refus:
+        r = Resultat(None, 0.0, 0, erreur=refus)
+        _noter_cout(membre, tache, modele, r, journal)
+        return r
     if client is None:
         import anthropic
         client = anthropic.Anthropic(max_retries=3)
     system = [
         {"type": "text", "text": PERSONA},
-        {"type": "text", "text": texte_de_reference(racine)},
+        {"type": "text", "text": texte_de_reference(racine, textes)},
         # Le mandat change d'un membre à l'autre : il clôt le préfixe mis en cache.
         {"type": "text", "text": f"<ton_mandat membre=\"{membre}\">\n{mandat}\n</ton_mandat>",
          "cache_control": {"type": "ephemeral"}},
@@ -233,7 +306,7 @@ def consulter(membre: str, modele: str, mandat: str, tache: str, consigne: str,
     try:
         while r.tours < max_tours:
             r.tours += 1
-            reponse = appeler(messages=messages, **params)
+            reponse = appeler(messages=_avec_cache(messages), **params)
             dollars, jetons = _cout(modele, reponse.usage)
             r.cout += dollars
             for k, v in jetons.items():
@@ -296,6 +369,11 @@ def sauver_memo(membre: str, tache: str, r: Resultat, dossier: Path = DOSSIER / 
     chemin = dossier / jour / \
         f"{membre.lower().replace(' ', '-')}-{tache}-{quand.strftime('%H%M%S')}.json"
     chemin.parent.mkdir(parents=True, exist_ok=True)
+    # Deux mémos dans la même seconde ne s'écrasent pas (vu dans les tests).
+    n = 2
+    while chemin.exists():
+        chemin = chemin.with_name(f"{chemin.stem.rsplit('~', 1)[0]}~{n}.json")
+        n += 1
     chemin.write_text(json.dumps({
         "membre": membre, "tache": tache, "horodatage": quand.isoformat(timespec="seconds"),
         "ok": r.ok, "erreur": r.erreur, "cout_usd": round(r.cout, 5), "tours": r.tours,
