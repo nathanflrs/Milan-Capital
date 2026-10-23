@@ -360,11 +360,20 @@ async def push_unsubscribe(request: Request, user: str = Depends(require_auth)):
 
 
 @app.post("/api/push/test")
-def push_test(user: str = Depends(require_auth)):
-    """Envoi de vérification — la seule façon honnête de savoir si ça marche."""
+async def push_test(request: Request, user: str = Depends(require_auth)):
+    """Envoi de vérification — la seule façon honnête de savoir si ça marche.
+
+    Avec {"endpoint": …}, seulement à cet appareil (la cloche de la salle).
+    """
     from src.notify.push import send_push
-    r = send_push("Milan Capital", "Les notifications fonctionnent.", tag="test")
-    return {"ok": r.sent > 0, "detail": r.render()}
+    try:
+        endpoint = (await request.json()).get("endpoint")
+    except Exception:
+        endpoint = None
+    r = send_push("Milan Capital", "Les notifications fonctionnent sur cet appareil.",
+                  tag="test", endpoint=endpoint)
+    return {"ok": r.sent > 0, "envoyes": r.sent, "echecs": r.failed, "retires": r.pruned,
+            "detail": r.render()}
 
 
 # ── Auth routes ───────────────────────────────────────────────────────────────

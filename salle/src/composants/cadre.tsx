@@ -47,30 +47,56 @@ function b64(base64: string) {
 
 type EtatNotif = 'inconnu' | 'actives' | 'inactives' | 'refusees' | 'impossibles'
 
-function useNotifications(): [EtatNotif, () => Promise<void>] {
+// Un appui sur la cloche répond toujours : il inscrit l'appareil si besoin, puis
+// envoie un test à CET appareil et dit ce qui s'est passé. Avant, une cloche
+// déjà active ne faisait rien au toucher, et rien ne disait si ça marchait.
+function useNotifications(): [EtatNotif, () => Promise<void>, string | null] {
   const [etat, setEtat] = useState<EtatNotif>('inconnu')
+  const [message, setMessage] = useState<string | null>(null)
+  const dire = (m: string) => { setMessage(m); setTimeout(() => setMessage(null), 7000) }
+  const inscrire = (sub: PushSubscription) => fetch('/api/push/subscribe', {
+    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(sub),
+  })
   useEffect(() => {
     if (DEMO || !('serviceWorker' in navigator) || !('PushManager' in window)) { setEtat('impossibles'); return }
     if (Notification.permission === 'denied') { setEtat('refusees'); return }
     navigator.serviceWorker.register('/sw.js').then(async (reg) => {
       const s = await reg.pushManager.getSubscription()
+      // Réinscrit l'appareil à chaque ouverture : le serveur le retrouve même
+      // s'il l'avait oublié (inscription idempotente).
+      if (s) inscrire(s).catch(() => {})
       setEtat(s ? 'actives' : 'inactives')
     }).catch(() => setEtat('impossibles'))
   }, [])
   const activer = async () => {
-    if (etat === 'actives' || etat === 'impossibles' || etat === 'refusees') return
-    const permission = await Notification.requestPermission()
-    if (permission !== 'granted') { setEtat('refusees'); return }
-    const reg = await navigator.serviceWorker.ready
-    const { public_key } = await (await fetch('/api/push/key', { credentials: 'same-origin' })).json()
-    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(public_key) })
-    await fetch('/api/push/subscribe', {
-      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sub),
-    })
-    setEtat('actives')
+    if (etat === 'impossibles') {
+      dire('Sur iPhone : ouvre la salle depuis son icône sur l’écran d’accueil (Partager → Sur l’écran d’accueil), puis touche la cloche.')
+      return
+    }
+    if (etat === 'refusees') { dire('Notifications refusées : autorise-les dans Réglages → Notifications → Milan Capital.'); return }
+    try {
+      const reg = await navigator.serviceWorker.ready
+      let sub = await reg.pushManager.getSubscription()
+      if (!sub) {
+        const permission = await Notification.requestPermission()
+        if (permission !== 'granted') { setEtat('refusees'); dire('Notifications refusées sur cet appareil.'); return }
+        const { public_key } = await (await fetch('/api/push/key', { credentials: 'same-origin' })).json()
+        sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(public_key) })
+      }
+      await inscrire(sub)
+      setEtat('actives')
+      const r = await (await fetch('/api/push/test', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      })).json()
+      dire(r.ok ? 'Test envoyé à cet appareil : la notification arrive dans quelques secondes.'
+        : `Le test n’est pas parti (${r.detail ?? 'erreur'}).`)
+    } catch {
+      dire('Impossible de joindre le serveur des notifications.')
+    }
   }
-  return [etat, activer]
+  return [etat, activer, message]
 }
 
 function Direct({ etat }: { etat: EtatDirect }) {
@@ -85,7 +111,7 @@ function Direct({ etat }: { etat: EtatDirect }) {
 
 export function Cadre({ children, direct, mode }: { children: ReactNode; direct: EtatDirect; mode?: string }) {
   const [theme, basculer] = useTheme()
-  const [notif, activer] = useNotifications()
+  const [notif, activer, messageNotif] = useNotifications()
   const sortir = async () => { await deconnecter(); location.reload() }
 
   return (
@@ -117,10 +143,10 @@ export function Cadre({ children, direct, mode }: { children: ReactNode; direct:
               aria-label={theme === 'sombre' ? 'Passer en mode clair' : 'Passer en mode sombre'}>
               {theme === 'sombre' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-            <button onClick={activer} disabled={notif !== 'inactives'}
-              className="rounded-[10px] p-2 text-encre-2 hover:bg-surface-2 hover:text-encre disabled:cursor-default disabled:hover:bg-transparent"
+            <button onClick={activer}
+              className="rounded-[10px] p-2 text-encre-2 hover:bg-surface-2 hover:text-encre"
               aria-label="Notifications sur cet appareil"
-              title={{ actives: 'Notifications actives sur cet appareil', inactives: 'Activer les notifications sur cet appareil',
+              title={{ actives: 'Notifications actives : toucher pour envoyer un test', inactives: 'Activer les notifications sur cet appareil',
                 refusees: 'Notifications refusées dans les réglages', impossibles: 'Notifications indisponibles ici', inconnu: '' }[notif]}>
               {notif === 'actives' ? <Bell size={18} weight="fill" className="text-accent" /> : notif === 'inactives' ? <Bell size={18} /> : <BellSlash size={18} />}
             </button>
@@ -141,11 +167,18 @@ export function Cadre({ children, direct, mode }: { children: ReactNode; direct:
           <button onClick={basculer} className="rounded-[10px] p-2 text-encre-2" aria-label="Changer de thème">
             {theme === 'sombre' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          {notif === 'inactives' && (
-            <button onClick={activer} className="rounded-[10px] p-2 text-encre-2" aria-label="Activer les notifications"><Bell size={18} /></button>
-          )}
+          <button onClick={activer} className="rounded-[10px] p-2 text-encre-2"
+            aria-label={notif === 'actives' ? 'Envoyer une notification de test' : 'Activer les notifications'}>
+            {notif === 'actives' ? <Bell size={18} weight="fill" className="text-accent" /> : notif === 'inactives' ? <Bell size={18} /> : <BellSlash size={18} />}
+          </button>
         </div>
       </header>
+
+      {messageNotif && (
+        <p role="status" className="fixed inset-x-4 top-[max(68px,calc(env(safe-area-inset-top)+56px))] z-30 mx-auto max-w-md rounded-[12px] bg-[var(--nuit-panneau)] px-4 py-3 text-[14px] leading-snug text-[var(--nuit-panneau-encre)] shadow-[var(--ombre)] md:top-6">
+          {messageNotif}
+        </p>
+      )}
 
       <main className="mx-auto w-full max-w-[1240px] px-4 pb-28 pt-6 md:px-10 md:pb-16 md:pt-10">{children}</main>
 

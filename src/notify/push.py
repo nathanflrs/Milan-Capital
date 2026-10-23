@@ -190,6 +190,7 @@ def send_push(
     tag: Optional[str] = None,
     subs_path: Optional[Path] = None,
     keys_path: Optional[Path] = None,
+    endpoint: Optional[str] = None,
 ) -> PushResult:
     """
     Notifie tous les appareils inscrits.
@@ -209,7 +210,9 @@ def send_push(
     subs_path = subs_path or SUBS_PATH
     keys_path = keys_path or KEYS_PATH
 
-    subs = _load_subs(subs_path)
+    tous = _load_subs(subs_path)
+    # `endpoint` : un seul appareil (le test de la cloche, dans la salle).
+    subs = [s for s in tous if s.get("endpoint") == endpoint] if endpoint else tous
     if not subs:
         return PushResult(0, 0, 0)
 
@@ -248,7 +251,7 @@ def send_push(
             logger.warning("push échoué : %s", str(exc)[:120])
 
     if dead:
-        _save_subs([s for s in subs if s.get("endpoint") not in dead], subs_path)
+        _save_subs([s for s in tous if s.get("endpoint") not in dead], subs_path)
 
     return PushResult(sent=sent, failed=failed, pruned=len(dead))
 

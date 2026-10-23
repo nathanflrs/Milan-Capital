@@ -176,6 +176,20 @@ class TestSending:
         assert r.pruned == 1
         assert P.count_subscriptions(subs_path) == 0
 
+    def test_test_of_one_device_only(self, subs_path, keys_path, monkeypatch):
+        """La cloche de la salle teste l'appareil qui la touche, pas tous les autres."""
+        P.add_subscription(_sub("https://push.apple.com/MAC"), subs_path)
+        P.add_subscription(_sub("https://push.apple.com/IPHONE"), subs_path)
+        vus = []
+
+        import pywebpush
+        monkeypatch.setattr(pywebpush, "webpush",
+                            lambda subscription_info, **k: vus.append(subscription_info["endpoint"]))
+        r = P.send_push("t", "b", subs_path=subs_path, keys_path=keys_path,
+                        endpoint="https://push.apple.com/IPHONE")
+        assert r.sent == 1 and vus == ["https://push.apple.com/IPHONE"]
+        assert P.count_subscriptions(subs_path) == 2
+
     def test_payload_carries_title_body_and_tag(self, subs_path, keys_path, monkeypatch):
         P.add_subscription(_sub("https://push.apple.com/AAA"), subs_path)
         captured = {}
