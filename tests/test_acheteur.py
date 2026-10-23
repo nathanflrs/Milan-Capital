@@ -5,7 +5,8 @@ Ce qui est verrouillé ici :
 - le jour de réaction : le lendemain si publié après la clôture, le jour même sinon ;
 - le mouvement habituel se mesure clôture avant → clôture de réaction, sur
   les 8 derniers résultats, et rien sous 4 ;
-- candidats : ce soir après la clôture, ou demain avant l'ouverture, dans l'univers ;
+- candidats : ce soir après la clôture, ou demain avant l'ouverture, dans l'univers,
+  une société une seule fois (GOOG et GOOGL) ;
 - l'échéance expire après le jour de réaction ;
 - achat seulement sous 85 % du mouvement habituel ;
 - prime : 0,5 % de la VL par straddle, 2 % au total, moitié à −8 % ;
@@ -55,9 +56,12 @@ def test_candidats():
            {"ticker": "MSFT", "jour": "2026-10-23", "moment": "avant_ouverture"},   # déjà publié
            {"ticker": "AMZN", "jour": "2026-10-26", "moment": "avant_ouverture"},
            {"ticker": "GOOG", "jour": "2026-10-26", "moment": "apres_cloture"},     # demain soir : trop tôt
-           {"ticker": "TINY", "jour": "2026-10-23", "moment": "apres_cloture"}]     # hors univers
-    c = st.candidats(res, date(2026, 10, 23), ["AAPL", "MSFT", "AMZN", "GOOG"])
-    assert [(x["ticker"], x["reaction"]) for x in c] == [("AAPL", "2026-10-26"), ("AMZN", "2026-10-26")]
+           {"ticker": "TINY", "jour": "2026-10-23", "moment": "apres_cloture"},    # hors univers
+           {"ticker": "GOOGL", "jour": "2026-10-23", "moment": "apres_cloture", "societe": "Alphabet"},
+           {"ticker": "GOOG", "jour": "2026-10-23", "moment": "apres_cloture", "societe": "Alphabet"}]
+    c = st.candidats(res, date(2026, 10, 23), ["AAPL", "MSFT", "AMZN", "GOOGL", "GOOG"])
+    assert [(x["ticker"], x["reaction"]) for x in c] == [("AAPL", "2026-10-26"), ("AMZN", "2026-10-26"),
+                                                       ("GOOGL", "2026-10-26")]
 
 
 def test_echeance_apres_la_reaction():

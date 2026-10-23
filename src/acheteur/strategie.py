@@ -47,13 +47,18 @@ def candidats(resultats: Iterable[dict], aujourd_hui: date, eligibles: Iterable[
     """Publications de ce soir (après la clôture) ou de demain matin (avant l'ouverture)."""
     eligibles = set(eligibles)
     demain = prochain_jour_ouvre(aujourd_hui)
-    garde = []
+    garde, societes = [], set()
     for r in resultats:
         if r["ticker"] not in eligibles:
+            continue
+        # GOOG et GOOGL : une seule société, un seul pari.
+        societe = (r.get("societe") or r["ticker"]).lower()
+        if societe in societes:
             continue
         if (r["jour"] == aujourd_hui.isoformat() and r["moment"] == "apres_cloture") or \
                 (r["jour"] == demain.isoformat() and r["moment"] == "avant_ouverture"):
             garde.append({**r, "reaction": demain.isoformat()})
+            societes.add(societe)
     return garde
 
 
