@@ -49,3 +49,13 @@ def test_manifeste_et_service_worker(client):
     assert m["theme_color"] == "#13213B" and m["name"] == "Milan Capital"
     sw = client.get("/sw.js").text
     assert "milan-salle-v2" in sw and "caches.delete" in sw and "navigate(url)" in sw
+
+
+def test_une_notification_ouvre_sa_demande(client):
+    r = client.get("/interventions/abc123")
+    assert r.status_code == 200 and 'id="root"' in r.text
+
+
+def test_les_demandes_exigent_une_connexion(client):
+    assert client.get("/api/salle/interventions").status_code == 401
+    assert client.post("/api/salle/interventions/abc/reponse", json={"reponse": "regle"}).status_code == 401

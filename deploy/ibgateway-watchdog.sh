@@ -17,18 +17,35 @@
 # La leçon n'est pas « surveiller IBC ». C'est que **la présence d'un processus
 # ne prouve pas la disponibilité d'un service**. On teste donc la capacité
 # réelle — le port API accepte-t-il une connexion — et non l'état systemd.
+#
+# Le 2026-10-26 et le 2026-11-02, le même refus de connexion a laissé le port
+# ouvert : la passerelle acceptait les clients sans plus jamais leur répondre, et
+# tous les pods ont perdu leur journée. Le test va donc jusqu'à une vraie réponse
+# de l'API (ibgateway_api_ok.py), et il faut deux échecs de suite pour redémarrer.
 set -uo pipefail
 
 PORT="${IBGW_PORT:-4002}"
 ETAT=/var/lib/milan/ibgateway-watchdog.state
+ECHECS=/var/lib/milan/ibgateway-watchdog.echecs
 COOLDOWN=1200          # 20 min entre deux redémarrages : évite l'emballement
                        # et laisse à IBKR le temps de sa maintenance quotidienne.
 
 mkdir -p "$(dirname "$ETAT")"
 
-if timeout 5 bash -c "</dev/tcp/127.0.0.1/$PORT" 2>/dev/null; then
-    [ -f "$ETAT" ] && rm -f "$ETAT"
-    echo "ibgateway-watchdog: port $PORT accepte les connexions"
+api_repond() {
+    timeout 40 /opt/milan/.venv/bin/python /opt/milan/deploy/ibgateway_api_ok.py "$PORT" 2>/dev/null
+}
+
+if api_repond; then
+    rm -f "$ETAT" "$ECHECS"
+    echo "ibgateway-watchdog: l'API du port $PORT répond"
+    exit 0
+fi
+
+echecs=$(( $(cat "$ECHECS" 2>/dev/null || echo 0) + 1 ))
+echo "$echecs" > "$ECHECS"
+if [ "$echecs" -lt 2 ]; then
+    echo "ibgateway-watchdog: l'API du port $PORT ne répond pas — on revérifie au prochain passage"
     exit 0
 fi
 
@@ -37,16 +54,17 @@ dernier=$(cat "$ETAT" 2>/dev/null || echo 0)
 depuis=$(( maintenant - dernier ))
 
 if [ "$depuis" -lt "$COOLDOWN" ]; then
-    echo "ibgateway-watchdog: port $PORT muet, mais redémarrage il y a ${depuis}s — on attend"
+    echo "ibgateway-watchdog: API muette, mais redémarrage il y a ${depuis}s — on attend"
     exit 0
 fi
 
-echo "ibgateway-watchdog: port $PORT injoignable → redémarrage de ibgateway"
+echo "ibgateway-watchdog: API muette → redémarrage de ibgateway"
 echo "$maintenant" > "$ETAT"
 systemctl restart ibgateway
 
 sleep 100
-if timeout 5 bash -c "</dev/tcp/127.0.0.1/$PORT" 2>/dev/null; then
+if api_repond; then
+    rm -f "$ECHECS"
     echo "ibgateway-watchdog: rétabli"
 else
     # Deux causes possibles : identifiants réellement invalides, ou IBKR

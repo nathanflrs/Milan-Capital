@@ -210,7 +210,8 @@ def root():
 # Les écrans de la salle sont des routes de l'application : le serveur rend la
 # même page, et c'est l'application qui affiche le bon écran (liens profonds,
 # notifications, rechargement).
-for _ecran in ("/equipe", "/equipe/{membre}", "/fil", "/rapports", "/protocole"):
+for _ecran in ("/equipe", "/equipe/{membre}", "/fil", "/rapports", "/protocole",
+               "/interventions", "/interventions/{demande}"):
     app.add_api_route(_ecran, root, methods=["GET"], response_class=HTMLResponse,
                       include_in_schema=False)
 
@@ -398,9 +399,9 @@ async def login(request: Request):
     resp = JSONResponse({"ok": True, "username": username})
     resp.set_cookie(
         SESSION_COOKIE, token,
-        # Pas de max_age : cookie de session pur — survit à la mise en arrière-plan
-        # (process iOS suspendu) mais disparaît si l'app est fermée (swipe-up).
-        httponly=True, samesite="lax", secure=IS_CLOUD, path="/",
+        # Durée explicite : un cookie de session disparaîtrait à la fermeture de l'app
+        # (swipe-up sur iOS), et toucher une notification redemanderait le mot de passe.
+        max_age=auth_mod.SESSION_MAX_AGE, httponly=True, samesite="lax", secure=IS_CLOUD, path="/",
     )
     return resp
 

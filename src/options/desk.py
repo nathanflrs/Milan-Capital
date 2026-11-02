@@ -47,8 +47,8 @@ def _publier(role: str, texte: str, moment: str, mode: str, gravite: str = "info
         # Écart avec le courtier, séance interrompue, remplissage partiel : le
         # CIO doit le savoir tout de suite, sur son téléphone.
         try:
-            from src.equipe.socle import notifier_telephone
-            notifier_telephone(f"Desk — {role}", texte[:180], url="/", tag="desk-incident")
+            from src.notify.interventions import incident
+            incident("desk", "Vendeur", role, texte)
         except Exception:
             pass
     try:
@@ -129,6 +129,9 @@ def seance(moment: str, aujourd_hui: Optional[date] = None,
         if not livre.vl_armement:
             livre.vl_armement = vl
         rap = rg.rapprocher(livre, ib.positions())
+        if rap.ok:
+            from src.notify.interventions import resoudre
+            resoudre("desk-ecart")
         # Actions (prop trader) et options sur actions (acheteur) appartiennent aux
         # deux autres pods (docs/desk/pods.md) : seul le reste est anormal.
         inconnues = [l for l in rap.hors_desk if not l.startswith(("STK ", "OPT "))]

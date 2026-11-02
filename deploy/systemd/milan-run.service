@@ -5,6 +5,8 @@ Description=Milan Capital — run quotidien du fonds
 # présence, contrairement au dashboard.
 Requires=ibgateway.service
 After=ibgateway.service
+OnFailure=milan-alerte@%n.service
+OnSuccess=milan-resolu@%n.service
 
 [Service]
 Type=oneshot

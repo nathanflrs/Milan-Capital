@@ -370,6 +370,10 @@ class Decision(BaseModel):
     raison: str = ""
 
 
+class Reponse(BaseModel):
+    reponse: str
+
+
 def creer_routeur(require_auth: Callable) -> APIRouter:
     r = APIRouter(prefix="/api/salle", dependencies=[Depends(require_auth)])
 
@@ -388,6 +392,21 @@ def creer_routeur(require_auth: Callable) -> APIRouter:
             return historique(membre)
         except KeyError:
             raise HTTPException(404, "membre inconnu")
+
+    @r.get("/interventions")
+    def _interventions():
+        from src.notify import interventions as iv
+        return iv.lister()
+
+    @r.post("/interventions/{demande}/reponse")
+    def _repondre(demande: str, d: Reponse):
+        from src.notify import interventions as iv
+        try:
+            return iv.repondre(demande, d.reponse)
+        except KeyError:
+            raise HTTPException(404, "demande inconnue")
+        except ValueError as e:
+            raise HTTPException(422, str(e))
 
     @r.get("/propositions")
     def _propositions():

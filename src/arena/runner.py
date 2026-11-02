@@ -56,7 +56,7 @@ from src.broker.portfolio import fetch_account_snapshot
 from src.data.market_data import download_ohlcv, get_last_close_1d, normalize_ohlcv
 from src.regime.detector import GMMRegimeDetector
 from src.execution.planner import (
-    plan_from_signal, cta_plan_from_signal, pairs_plans_from_signal, liquidation_plans, OrderPlan,
+    plan_from_signal, cta_plan_from_signal, pairs_plans_from_signal, OrderPlan,
 )
 from src.execution.guards import build_execution_plan
 from src.execution.reconciliation import (
@@ -1102,25 +1102,17 @@ def _run() -> None:
         # sont un même filtre de tendance qui ne fait pas mieux que détenir les
         # 11 titres, et EarningsSentiment n'est pas vérifiable. Pendant la
         # reconstruction, les agents continuent de proposer — leurs signaux
-        # restent dans decisions.csv pour comparaison — mais le fonds solde ce
-        # qu'il détient et n'ouvre plus rien. Une fois à plat, plus aucun ordre.
+        # restent dans decisions.csv pour comparaison — mais le fonds n'ouvre plus
+        # rien. À plat depuis le 2026-09-17 : plus aucun ordre.
         if OBSERVATION_MODE:
             _n_proposals = sum(1 for p in plans if abs(p.delta_qty) > 1e-9)
-            _obs_prices: dict[str, float] = {}
-            for _sym, _qty in snap.positions.items():
-                if abs(float(_qty)) < 1e-9:
-                    continue
-                try:
-                    if _sym not in all_data:
-                        all_data[_sym] = download_ohlcv(_sym)
-                    _obs_prices[_sym] = get_last_close_1d(all_data[_sym])
-                except Exception as _px_exc:
-                    print(f"⚠️  Observation : pas de prix pour {_sym} ({_px_exc}) — position laissée en place")
-            plans = liquidation_plans(snap.positions, _obs_prices)
+            # Le compte est partagé avec les pods : ce qu'il détient ne nous appartient
+            # plus. Le run v1, à plat depuis septembre, n'envoie donc plus aucun ordre.
+            plans = []
             _pending_divArb.clear()
             print(
                 f"\n🔭 MODE OBSERVATION — {_n_proposals} proposition(s) d'agents "
-                f"journalisée(s), non exécutée(s) ; {len(plans)} position(s) à solder"
+                f"journalisée(s), non exécutée(s)"
             )
 
         print("\n====== ORDER PLAN (NO EXECUTION) ======")

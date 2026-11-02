@@ -65,8 +65,8 @@ def publications_passees(ticker: str, jour: date, dossier: Path = DOSSIER / "his
 def _publier(texte: str, moment: str, mode: str, gravite: str = "info") -> None:
     print(f"[{ROLE}] {texte}")
     if gravite == "critical":
-        from src.equipe.socle import notifier_telephone
-        notifier_telephone(f"Acheteur — {ROLE}", texte[:180], url="/", tag="acheteur-incident")
+        from src.notify.interventions import incident
+        incident("acheteur", "Acheteur", ROLE, texte)
     try:
         from src.events.bus import Event, get_bus
         get_bus().emit(Event(type="desk", severity=gravite, title=ROLE, body=texte,
@@ -139,9 +139,11 @@ def seance(moment: str, jour: Optional[date] = None, livre_chemin: Path = lv.LIV
         livre = lv.charger(livre_chemin)
         ecarts = lv.rapprocher(livre, ib.positions())
         if ecarts:
-            dire(f"Écart avec le courtier : {'; '.join(ecarts)}. Le pod ne décide rien tant qu'un "
-                 f"humain n'a pas compris.", "critical")
+            dire(f"Écart avec le courtier : {'; '.join(ecarts)}. Acheteur gelé : aucun straddle tant "
+                 f"que ce n'est pas réglé. Les ordres déjà posés chez IBKR restent actifs. À faire : demande à Claude de rapprocher le registre.", "critical")
             return 1
+        from src.notify.interventions import resoudre
+        resoudre("acheteur-ecart")
         achetes = vendus = examines = 0
         lignes: List[str] = []
 

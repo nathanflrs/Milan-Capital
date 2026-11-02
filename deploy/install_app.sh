@@ -103,6 +103,8 @@ install -m 644 "$APP_DIR/deploy/systemd/milan-prop-cloture.timer" /etc/systemd/s
 install -m 644 "$APP_DIR/deploy/systemd/milan-acheteur@.service" /etc/systemd/system/
 install -m 644 "$APP_DIR/deploy/systemd/milan-acheteur-entree.timer" /etc/systemd/system/
 install -m 644 "$APP_DIR/deploy/systemd/milan-acheteur-sortie.timer" /etc/systemd/system/
+install -m 644 "$APP_DIR/deploy/systemd/milan-alerte@.service" /etc/systemd/system/
+install -m 644 "$APP_DIR/deploy/systemd/milan-resolu@.service" /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable milan-dashboard >/dev/null
 # La collecte nocturne n'importe pas le courtier : aucun ordre ne peut en

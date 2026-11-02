@@ -5,6 +5,7 @@ import { QueryClientProvider, useQueryClient } from '@tanstack/react-query'
 import { client, useEtat, useSession } from './api'
 import { useDirect } from './live'
 import { Cadre } from './composants/cadre'
+import { BandeauInterventions } from './composants/interventions'
 import { Squelette } from './composants/base'
 import Connexion from './pages/Connexion'
 import Desk from './pages/Desk'
@@ -14,6 +15,7 @@ const Membre = lazy(() => import('./pages/Membre'))
 const Fil = lazy(() => import('./pages/Fil'))
 const Rapports = lazy(() => import('./pages/Rapports'))
 const Protocole = lazy(() => import('./pages/Protocole'))
+const Interventions = lazy(() => import('./pages/Interventions'))
 
 function LienDeNotification() {
   const { search } = useLocation()
@@ -31,6 +33,7 @@ function Salle() {
   return (
     <Cadre direct={direct} mode={etat?.mode}>
       <LienDeNotification />
+      <BandeauInterventions />
       <Suspense fallback={<Squelette className="h-40 w-full" />}>
         <Routes>
           <Route path="/" element={<Desk />} />
@@ -39,6 +42,8 @@ function Salle() {
           <Route path="/fil" element={<Fil />} />
           <Route path="/rapports" element={<Rapports />} />
           <Route path="/protocole" element={<Protocole />} />
+          <Route path="/interventions" element={<Interventions />} />
+          <Route path="/interventions/:id" element={<Interventions />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

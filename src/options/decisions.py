@@ -150,7 +150,7 @@ def planifier(livre: Livre, chaine: pd.DataFrame, spot: float, vl: float,
     # 1. Middle Office : sans accord avec le courtier, le desk ne décide rien.
     if not registre_ok:
         plan.bloque = True
-        plan.dire(MO, f"Écart avec le courtier — desk suspendu, intervention humaine requise : {ecarts}")
+        plan.dire(MO, f"Écart avec le courtier — vendeur gelé : {ecarts}. Les ordres déjà posés chez IBKR restent actifs. À faire : demande à Claude de rapprocher le registre.")
         return plan
     plan.dire(MO, f"Registre et courtier d'accord : {len(livre.barreaux)} barreau(x), "
                   f"MES {sum(livre.mes.values()):+d}.")

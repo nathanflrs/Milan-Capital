@@ -2,6 +2,8 @@
 Description=Milan Capital — photo quotidienne des chaînes d'options SPY et XSP
 After=network-online.target ibgateway.service
 Wants=network-online.target
+OnFailure=milan-alerte@%n.service
+OnSuccess=milan-resolu@%n.service
 
 [Service]
 Type=oneshot

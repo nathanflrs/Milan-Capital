@@ -2,6 +2,8 @@
 Description=Milan Capital — séance de l'acheteur de volatilité (%i, heure de New York)
 After=network-online.target ibgateway.service
 Wants=network-online.target
+OnFailure=milan-alerte@%n.service
+OnSuccess=milan-resolu@%n.service
 
 [Service]
 Type=oneshot

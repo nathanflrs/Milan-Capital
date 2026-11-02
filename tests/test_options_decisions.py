@@ -36,7 +36,7 @@ def actions(plan, type_):
 def test_sans_accord_avec_le_courtier_rien():
     p = dc.planifier(Livre(), CH, SPOT, VL, LUNDI, "10:30", registre_ok=False, ecarts="MES +2")
     assert p.bloque and p.actions == []
-    assert "intervention humaine" in p.messages[0][1]
+    assert "vendeur gelé" in p.messages[0][1]
 
 
 def test_premier_barreau_le_lundi_a_10h30():

@@ -74,6 +74,12 @@ export interface Evenement {
   ok?: boolean | null; cout_usd?: number | null; mode?: string | null
 }
 
+export interface Intervention {
+  id: string; cle: string; titre: string; texte: string; statut: 'ouverte' | 'fermee'
+  reponse: 'je_m_en_occupe' | 'regle' | 'automatique' | null
+  ouverte_le: string; signalee_le: string; fermee_le: string | null
+}
+
 export interface Membre {
   titre: string; slug: string; nature: 'humain' | 'code' | 'claude'; modele: string | null
   mission: string; statut: Statut; derniere_action: Evenement | null; actions_du_jour: number
@@ -114,7 +120,7 @@ async function lire<T>(chemin: string): Promise<T> {
     const table: Record<string, any> = {
       '/api/salle/etat': d.etat, '/api/salle/equipe': d.equipe, '/api/salle/fil': d.fil,
       '/api/salle/rapports': d.rapports, '/api/salle/protocole': d.protocole,
-      '/api/salle/propositions': d.propositions, '/api/session': { authenticated: true, username: 'nathan' },
+      '/api/salle/propositions': d.propositions, '/api/salle/interventions': [], '/api/session': { authenticated: true, username: 'nathan' },
     }
     const membre = chemin.match(/^\/api\/salle\/equipe\/(.+)$/)
     if (membre) return (d.membres[membre[1]] ?? { titre: membre[1], memos: [], carnet: null }) as T
@@ -159,6 +165,28 @@ export async function connecter(username: string, password: string) {
 
 export async function deconnecter() {
   await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' })
+}
+
+export const useInterventions = () => useQuery({
+  queryKey: ['interventions'], queryFn: () => lire<Intervention[]>('/api/salle/interventions'),
+  refetchInterval: 60_000,
+})
+
+export function useReponse() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, reponse }: { id: string; reponse: 'je_m_en_occupe' | 'regle' }) => {
+      if (DEMO) return { id, reponse }
+      const r = await fetch(`/api/salle/interventions/${encodeURIComponent(id)}/reponse`, {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reponse }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(d.detail || 'Réponse non enregistrée.')
+      return d
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['interventions'] }) },
+  })
 }
 
 export function useDecision() {

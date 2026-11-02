@@ -1,0 +1,10 @@
+[Unit]
+Description=Milan Capital — demande d'intervention : %i a échoué
+
+[Service]
+Type=oneshot
+User=milan
+Group=milan
+WorkingDirectory=/opt/milan
+EnvironmentFile=/opt/milan/.env
+ExecStart=/opt/milan/.venv/bin/python -m src.notify.alerte echec %i

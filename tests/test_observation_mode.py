@@ -52,3 +52,20 @@ def test_la_garde_ne_rationne_aucune_liquidation():
     assert ex.n_dropped == 0 and ex.n_resized == 0
     assert {c.plan.symbol: c.qty for c in ex.candidates} == {s: int(q) for s, q in POSITIONS.items()}
     assert all(c.side == "SELL" and c.risk_reducing for c in ex.candidates)
+
+
+def test_les_options_des_pods_ne_sont_pas_des_actions():
+    # 2026-10-29 : une jambe du straddle MSFT, lue comme une action, a été vendue.
+    from types import SimpleNamespace as N
+
+    from src.broker.portfolio import fetch_account_snapshot
+
+    class Compte:
+        def accountSummary(self):
+            return []
+
+        def positions(self):
+            return [N(contract=N(symbol="MSFT", secType="OPT"), position=1.0, avgCost=1300.0),
+                    N(contract=N(symbol="LMT", secType="STK"), position=140.0, avgCost=586.0)]
+
+    assert fetch_account_snapshot(Compte()).positions == {"LMT": 140.0}

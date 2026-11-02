@@ -40,6 +40,10 @@ def fetch_account_snapshot(ib: IB) -> PortfolioSnapshot:
         sym = getattr(p.contract, "symbol", None)
         if not sym:
             continue
+        # Les options des pods portent le symbole du sous-jacent : le 2026-10-29,
+        # une jambe du straddle MSFT a été lue comme « 1 action MSFT ».
+        if getattr(p.contract, "secType", "STK") != "STK":
+            continue
         pos[str(sym)] = float(p.position)
         cost = getattr(p, "avgCost", 0.0)
         if cost and float(cost) > 0:

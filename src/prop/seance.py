@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from src.equipe import socle as sc
+from src.notify import interventions as iv
 from src.prop import livre as lv
 from src.prop import ordres as od
 from src.prop import regles as rg
@@ -46,7 +47,7 @@ MOMENTS = ("ouverture", "suivi", "cloture")
 def _publier(texte: str, moment: str, mode: str, gravite: str = "info", role: str = ROLE) -> None:
     print(f"[{role}] {texte}")
     if gravite == "critical":
-        sc.notifier_telephone(f"Prop — {role}", texte[:180], url="/", tag="prop-incident")
+        iv.incident("prop", "Prop", role, texte)
     try:
         from src.events.bus import Event, get_bus
         get_bus().emit(Event(type="desk", severity=gravite, title=role, body=texte,
@@ -156,9 +157,10 @@ def passage(moment: str, jour: Optional[date] = None, livre_chemin: Path = lv.LI
                                   tag=f"prop-{t.id}")
         if not rap.ok:
             sauver()
-            dire(f"Écart avec le courtier : {rap.resume()}. Le pod ne décide rien tant qu'un "
-                 f"humain n'a pas compris.", "critical", "Middle Office")
+            dire(f"Écart avec le courtier : {rap.resume()}. Prop gelé : aucun trade tant que ce "
+                 f"n'est pas réglé. Les ordres déjà posés chez IBKR restent actifs. À faire : demande à Claude de rapprocher le registre.", "critical", "Middle Office")
             return 1
+        iv.resoudre("prop-ecart")
 
         # 2. Le marché d'hier, le résultat du jour, les limites.
         vue = load_market_view()
