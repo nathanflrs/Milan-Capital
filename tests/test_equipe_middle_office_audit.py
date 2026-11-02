@@ -185,7 +185,7 @@ def test_revue_du_vendredi(tmp_path):
     c = FauxClient([reponse([bloc_texte(revue)])])
     r = au.revue(date(2026, 10, 23), client=c, dossier=tmp_path, db=tmp_path / "e.db", publier=False)
     assert r.ok and "2026-10-19" in c.requetes[0]["messages"][0]["content"]   # lundi de la semaine
-    assert c.requetes[0]["output_config"]["effort"] == "high"
+    assert c.requetes[0]["output_config"]["effort"] == "medium"
 
 
 def test_briefing_tardif_exclu_de_la_calibration(tmp_path):

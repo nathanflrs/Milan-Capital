@@ -24,6 +24,7 @@ donnée fausse) doit devenir une leçon, et si possible un test automatique.
 from __future__ import annotations
 
 import json
+import re
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Literal, Optional
@@ -35,6 +36,10 @@ from src.equipe import socle as sc
 
 MEMBRE = "Audit"
 MODELE = sc.SONNET
+# À « high », la réflexion consommait tout le plafond de réponse : 7 mémos sur 8
+# tronqués du 23 au 30 octobre 2026, donc payés sans rien produire.
+EFFORT = "medium"
+DEJA_VU_JOURS = 7
 MEMBRES = Literal["Volatility Trader", "Execution Trader", "Risk Manager",
                   "Research Analyst", "Middle Office", "Audit"]
 PROPOSITIONS = sc.DOSSIER / "propositions.jsonl"
@@ -211,12 +216,36 @@ def _outils(debut: date, fin: date, dossier: Path, db: Path, complets: bool) -> 
     ]
 
 
+def _cle_raison(raison: str) -> str:
+    """La même raison d'un jour à l'autre, seuls les chiffres changeant, reste la même."""
+    return re.sub(r"[\d.,]+", "#", raison)[:120]
+
+
+def raisons_nouvelles(raisons: List[str], jour: date, chemin: Path) -> List[str]:
+    """Ce qui n'a pas déjà fait l'objet d'un post-mortem réussi ces derniers jours."""
+    try:
+        vues = json.loads(chemin.read_text())
+    except (OSError, ValueError):
+        vues = {}
+    seuil = (jour - timedelta(days=DEJA_VU_JOURS)).isoformat()
+    return [r for r in raisons if vues.get(_cle_raison(r), "") < seuil]
+
+
+def _noter_raisons(raisons: List[str], jour: date, chemin: Path) -> None:
+    try:
+        vues = json.loads(chemin.read_text())
+    except (OSError, ValueError):
+        vues = {}
+    vues.update({_cle_raison(r): jour.isoformat() for r in raisons})
+    chemin.write_text(json.dumps(vues, indent=1, ensure_ascii=False))
+
+
 def postmortem(jour: Optional[date] = None, *, client=None, dossier: Path = sc.DOSSIER,
                db: Path = jx.EVENEMENTS, publier: bool = True) -> Optional[sc.Resultat]:
     jour = jour or datetime.now(sc.NEW_YORK).date()
-    raisons = declencheurs(jour, dossier, db)
+    raisons = raisons_nouvelles(declencheurs(jour, dossier, db), jour, dossier / "postmortem_vus.json")
     if not raisons:
-        print(f"[{MEMBRE}] Journée calme : pas de post-mortem.")
+        print(f"[{MEMBRE}] Rien de nouveau : pas de post-mortem.")
         return None
     if publier:
         sc.annoncer(MEMBRE, "postmortem")
@@ -224,9 +253,11 @@ def postmortem(jour: Optional[date] = None, *, client=None, dossier: Path = sc.D
                 + "\n".join(f"- {r}" for r in raisons)
                 + "\nExamine chaque point avec tes outils, tranche sa nature, propose les leçons utiles.")
     r = sc.consulter(MEMBRE, MODELE, MANDAT_COMMUN, "postmortem", consigne, PostMortem,
-                     outils=_outils(jour, jour, dossier, db, complets=True), effort="high",
+                     outils=_outils(jour, jour, dossier, db, complets=True), effort=EFFORT,
                      client=client, journal=dossier / "couts.csv")
     sc.sauver_memo(MEMBRE, "postmortem", r, dossier / "memos")
+    if r.ok:
+        _noter_raisons(raisons, jour, dossier / "postmortem_vus.json")
     if r.ok and r.memo.lecons_proposees:
         proposer(r.memo.lecons_proposees, "postmortem", jour, dossier / "propositions.jsonl")
     if publier:
@@ -246,7 +277,7 @@ def revue(fin: Optional[date] = None, *, client=None, dossier: Path = sc.DOSSIER
                 f"bilan de chaque membre (y compris le code : Volatility Trader, Execution "
                 f"Trader), les constats, les leçons, puis écris le mémo commun de l'équipe au CIO.")
     r = sc.consulter(MEMBRE, MODELE, MANDAT_COMMUN, "revue", consigne, Revue,
-                     outils=_outils(debut, fin, dossier, db, complets=False), effort="high",
+                     outils=_outils(debut, fin, dossier, db, complets=False), effort=EFFORT,
                      client=client, journal=dossier / "couts.csv")
     sc.sauver_memo(MEMBRE, "revue", r, dossier / "memos")
     if r.ok and r.memo.lecons_proposees:

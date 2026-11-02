@@ -25,6 +25,7 @@ meta) : c'est ce que la salle des marchés affichera.
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -37,6 +38,7 @@ from src.options import execution as ex
 from src.options import registre as rg
 
 DOSSIER = Path("logs/desk")
+RELECTURES_SIMULEES = DOSSIER / "relectures_simulees.json"
 CLIENT_ID = int(os.getenv("DESK_CLIENT_ID", "22"))
 ZONE_SEANCE = 0.35
 
@@ -94,13 +96,44 @@ def _clotures_xsp(ib) -> list:
         return []
 
 
-def _relecture(ib, ouvrir, livre, chaine, spot: float, vl: float, aujourd_hui: date):
-    """(autorisé ?, motif) — l'avis du Risk Manager, toute défaillance valant frein."""
+def _accord_simule(echeance: str, chemin: Path = RELECTURES_SIMULEES) -> Optional[str]:
+    """La date du dernier accord du Risk Manager pour ce barreau simulé, ou None."""
+    try:
+        return json.loads(chemin.read_text()).get(echeance)
+    except (OSError, ValueError):
+        return None
+
+
+def _noter_accord_simule(echeance: str, jour: date, chemin: Path = RELECTURES_SIMULEES) -> None:
+    try:
+        accords = json.loads(chemin.read_text())
+    except (OSError, ValueError):
+        accords = {}
+    accords[echeance] = jour.isoformat()
+    chemin.parent.mkdir(parents=True, exist_ok=True)
+    chemin.write_text(json.dumps(accords, indent=1))
+
+
+def _relecture(ib, ouvrir, livre, chaine, spot: float, vl: float, aujourd_hui: date,
+               mode: str = ex.MODE_REEL):
+    """(autorisé ?, motif) — l'avis du Risk Manager, toute défaillance valant frein.
+
+    En simulation, rien n'est gardé d'une séance à l'autre : le même barreau revient
+    chaque jour. Un accord vaut pour toute son échéance (0,31 $ par relecture sur
+    Opus). En réel, chaque ouverture reste relue.
+    """
+    echeance = ouvrir.butterfly.echeance
+    if mode != ex.MODE_REEL:
+        deja = _accord_simule(echeance)
+        if deja:
+            return True, f"Barreau simulé {echeance} déjà approuvé le {deja} : pas de nouvelle relecture."
     try:
         from src.equipe import contexte, risk_manager
         ctx = contexte.construire(ouvrir, livre, chaine, spot, vl, aujourd_hui, _clotures_xsp(ib))
         ok, motif, _ = risk_manager.relire(ctx, contexte.fonction_de_stress(ouvrir, spot, aujourd_hui),
                                            aujourd_hui)
+        if ok and mode != ex.MODE_REEL:
+            _noter_accord_simule(echeance, aujourd_hui)
         return ok, motif
     except Exception as e:
         return False, f"Relecture impossible ({type(e).__name__} : {e}) : pas d'ouverture."
@@ -180,7 +213,7 @@ def seance(moment: str, aujourd_hui: Optional[date] = None,
                 b = a.butterfly
                 # Le Risk Manager relit toute ouverture. Pas d'avis valide = pas
                 # d'ouverture (docs/desk/equipe.md, règle 3).
-                autorise, motif = _relecture(ib, a, livre, chaine, spot, vl, aujourd_hui)
+                autorise, motif = _relecture(ib, a, livre, chaine, spot, vl, aujourd_hui, mode)
                 dire(dc.RM, motif, "info" if autorise else "warning")
                 if not autorise:
                     continue

@@ -169,7 +169,8 @@ def briefing(jour: Optional[date] = None, *, client=None, dossier: Path = sc.DOS
     r = sc.consulter(MEMBRE, MODELE, MANDAT_BRIEFING, "briefing", consigne, Meteo,
                      outils=_outils(jour, dossier, **sources),
                      outils_serveur=[sc.recherche_web(so.DOMAINES, max_uses=6)],
-                     effort="medium", client=client, journal=dossier / "couts.csv")
+                     effort="medium", client=client, journal=dossier / "couts.csv",
+                     textes=sc.TEXTES_DESK)
     sc.sauver_memo(MEMBRE, "briefing", r, dossier / "memos")
     if publier:
         sc.publier(MEMBRE, "briefing", r, notifier=True,
@@ -188,7 +189,8 @@ def analyser(titres_importants: List[dict], jour: Optional[date] = None, *, clie
     r = sc.consulter(MEMBRE, MODELE, MANDAT_ANALYSE, "analyse", consigne, Analyse,
                      outils=_outils(jour, dossier, **sources),
                      outils_serveur=[sc.recherche_web(so.DOMAINES, max_uses=4)],
-                     effort="medium", client=client, journal=dossier / "couts.csv")
+                     effort="medium", client=client, journal=dossier / "couts.csv",
+                     textes=sc.TEXTES_DESK)
     sc.sauver_memo(MEMBRE, "analyse", r, dossier / "memos")
     if publier:
         sc.publier(MEMBRE, "analyse", r, notifier=True,

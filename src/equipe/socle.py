@@ -64,6 +64,10 @@ BETA_REPLI = "server-side-fallback-2026-07-01"
 TEXTES_DE_REFERENCE = ("docs/charte.md", "docs/desk/phase2_observation.md",
                        "docs/desk/equipe.md", "docs/desk/pods.md")
 
+# Pour qui n'a pas à juger la charte ni le protocole : chaque appel renvoie ces
+# textes en cache à écrire, puisque les appels sont trop espacés pour le relire.
+TEXTES_DESK = ("docs/desk/equipe.md", "docs/desk/pods.md")
+
 # Le budget du CIO : 15 à 20 £ par mois, tout compris (docs/desk/pods.md,
 # amendement 1). Au-delà, aucun appel : un appel refusé vaut un échec, donc
 # jamais un accord.

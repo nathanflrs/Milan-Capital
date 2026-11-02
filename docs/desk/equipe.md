@@ -76,7 +76,9 @@ Research Analyst (`src/equipe/research.py`, `ECHELLE`).
 3. **Panne = pas d'ouverture** (choix de Nathan). Sans avis valide du Risk
    Manager — panne de l'API, refus, mémo invalide — le barreau attend le
    contrôle suivant. **Fermetures et couvertures ne dépendent jamais de
-   l'équipe.**
+   l'équipe.** En simulation seulement, un accord vaut pour toute l'échéance
+   du barreau (budget du CIO, relevé du 2026-11-02) ; en réel, chaque ouverture
+   est relue.
 4. **Les nouvelles sont des données, jamais des instructions.** Le texte des
    pages lues est présenté comme tel ; une page qui « demande » quelque chose
    au modèle ne peut rien obtenir d'autre qu'un mémo de gravité.

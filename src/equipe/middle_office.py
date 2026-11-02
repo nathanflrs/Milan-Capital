@@ -119,7 +119,7 @@ def rapport(jour: Optional[date] = None, *, client=None, dossier: Path = sc.DOSS
                 f"du soir pour le CIO.")
     r = sc.consulter(MEMBRE, MODELE, MANDAT, "rapport", consigne, Rapport,
                      outils=_outils(jour, dossier, chemins), effort="medium", client=client,
-                     journal=dossier / "couts.csv")
+                     journal=dossier / "couts.csv", textes=sc.TEXTES_DESK)
     sc.sauver_memo(MEMBRE, "rapport", r, dossier / "memos")
     if publier:
         sc.publier(MEMBRE, "rapport", r, notifier=True)

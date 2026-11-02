@@ -106,7 +106,8 @@ def passage(*, client=None, client_analyse=None, dossier: Path = sc.DOSSIER,
                        for t in nouveaux)
     tri = sc.consulter(MEMBRE, MODELE_TRI, MANDAT_TRI, "tri",
                        f"Titres nouveaux depuis le dernier passage :\n<titres>\n{lignes}\n</titres>",
-                       Tri, effort="low", client=client, journal=dossier / "couts.csv")
+                       Tri, effort="low", client=client, journal=dossier / "couts.csv",
+                       textes=("docs/desk/equipe.md",))
     sc.sauver_memo(MEMBRE, "tri", tri, dossier / "memos")
     bilan["cout_usd"] += tri.cout
     if not tri.ok:
